@@ -66,43 +66,43 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
                 Setting = JsonConvert.DeserializeObject<ProductWidgetSetting>(widgetInstance.Data)
             };
 
-            //var query = _productRepository.Query()
-            //  .Where(x => x.IsPublished && x.IsVisibleIndividually);
+            var query = _productRepository.Query()
+              .Where(x => x.IsPublished && x.IsVisibleIndividually);
 
-            //if (model.Setting.CategoryId.HasValue && model.Setting.CategoryId.Value > 0)
-            //{
-            //    query = query.Where(x => x.Categories.Any(c => c.CategoryId == model.Setting.CategoryId.Value));
-            //}
-
-            //if (model.Setting.FeaturedOnly)
-            //{
-            //    query = query.Where(x => x.IsFeatured);
-            //}
-
-            //model.Products = query
-            //  .Include(x => x.ThumbnailImage)
-            //  .OrderByDescending(x => x.CreatedOn)
-            //  .Take(model.Setting.NumberOfProducts)
-            //  .Select(x => ProductThumbnail.FromProduct(x)).ToList();
-            //foreach (var product in model.Products)
-            //{
-            //    product.Name = _contentLocalizationService.GetLocalizedProperty(nameof(Product), product.Id, nameof(product.Name), product.Name);
-            //    product.ThumbnailUrl = _mediaService.GetThumbnailUrl(product.ThumbnailImage);
-            //    product.CalculatedProductPrice = _productPricingService.CalculateProductPrice(product);
-            //}
-            foreach (producto p in productos.Result.result)
+            if (model.Setting.CategoryId.HasValue && model.Setting.CategoryId.Value > 0)
             {
-                ViewModels.ProductThumbnail tm = new ProductThumbnail();
-                tm.Id = long.Parse(p.identifier);
-                tm.Name = p.description;
-                tm.ThumbnailUrl = p.imagelarge;
-                int r = 0;
-                _ = int.TryParse(p.stocks, out r);
-                tm.StockQuantity = r;
-                tm.Price = decimal.Parse(p.pricewithtax);
-                //tm.CalculatedProductPrice = _productPricingService.CalculateProductPrice((decimal.Parse(p.pricewithtax)));
-                model.Products.Add(tm);
+                query = query.Where(x => x.Categories.Any(c => c.CategoryId == model.Setting.CategoryId.Value));
             }
+
+            if (model.Setting.FeaturedOnly)
+            {
+                query = query.Where(x => x.IsFeatured);
+            }
+
+            model.Products = query
+              .Include(x => x.ThumbnailImage)
+              .OrderByDescending(x => x.CreatedOn)
+              .Take(model.Setting.NumberOfProducts)
+              .Select(x => ProductThumbnail.FromProduct(x)).ToList();
+            foreach (var product in model.Products)
+            {
+                product.Name = _contentLocalizationService.GetLocalizedProperty(nameof(Product), product.Id, nameof(product.Name), product.Name);
+                product.ThumbnailUrl = _mediaService.GetThumbnailUrl(product.ThumbnailImage);
+                product.CalculatedProductPrice = _productPricingService.CalculateProductPrice(product);
+            }
+            //foreach (producto p in productos.Result.result)
+            //{
+            //    ViewModels.ProductThumbnail tm = new ProductThumbnail();
+            //    tm.Id = long.Parse(p.identifier);
+            //    tm.Name = p.description;
+            //    tm.ThumbnailUrl = p.imagelarge;
+            //    int r = 0;
+            //    _ = int.TryParse(p.stocks, out r);
+            //    tm.StockQuantity = r;
+            //    tm.Price = decimal.Parse(p.pricewithtax);
+            //    //tm.CalculatedProductPrice = _productPricingService.CalculateProductPrice((decimal.Parse(p.pricewithtax)));
+            //    model.Products.Add(tm);
+            //}
 
             return View(this.GetViewPath(), model);
         }
