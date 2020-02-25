@@ -9,6 +9,7 @@ namespace SimplCommerce.Module.Core.Services
         string GetMediaUrl(Media media);
 
         string GetMediaUrl(string fileName);
+        string GetURL(string url);
 
         string GetThumbnailUrl(Media media);
 

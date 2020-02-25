@@ -141,13 +141,15 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
                 _ = int.TryParse(p.stocks, out r);
                 tm.StockQuantity = r;
                 decimal pr = 0;
-                _ = decimal.TryParse(p.pricewithtax, out pr);
+                 pr = decimal.Parse(p.pricewithtax ); 
                 tm.Price = pr;
                 tm.ReviewsCount = int.Parse(p.likeothers);
                 tm.IsAllowToOrder = true;
                 tm.Slug = tm.Id+"-"+tm.Name.Replace(" ", "-");
                 Core.Models.Media pti = new ProductThumbnail().ThumbnailImage;
                 tm.ThumbnailUrl = _mediaService.GetThumbnailUrl(pti);
+                tm.ThumbnailUrl = _mediaService.GetURL(p.imagelarge);
+
                 //tm.CalculatedProductPrice(p);
                 //tm.CalculatedProductPrice = _productPricingService.CalculateProductPrice((decimal.Parse(p.pricewithtax)));
                 tm.CalculatedProductPrice = _productPricingService.CalculateProductPrice(tm);
