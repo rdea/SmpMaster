@@ -15,6 +15,10 @@ namespace SimplCommerce.Module.Core.Services
             _mediaRepository = mediaRepository;
             _storageService = storageService;
         }
+        public string GetURL(string url)
+        {
+            return url;
+        }
 
         public string GetMediaUrl(Media media)
         {

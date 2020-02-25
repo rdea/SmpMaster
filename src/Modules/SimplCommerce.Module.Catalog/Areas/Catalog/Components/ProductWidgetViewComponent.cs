@@ -136,18 +136,19 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
                 ViewModels.ProductThumbnail tm = new ProductThumbnail();
                 tm.Id = long.Parse(p.identifier);
                 tm.Name = p.description;
+                tm.ThumbnailUrl = p.imagelarge;
                 int r = 0;
                 _ = int.TryParse(p.stocks, out r);
                 tm.StockQuantity = r;
                 decimal pr = 0;
-                _ = decimal.TryParse(p.pricewithtax, out pr);
+                 pr = decimal.Parse(p.pricewithtax ); 
                 tm.Price = pr;
                 tm.ReviewsCount = int.Parse(p.likeothers);
                 tm.IsAllowToOrder = true;
                 tm.Slug = tm.Id+"-"+tm.Name.Replace(" ", "-");
                 Core.Models.Media pti = new ProductThumbnail().ThumbnailImage;
                 tm.ThumbnailUrl = _mediaService.GetThumbnailUrl(pti);
-                tm.ThumbnailUrl = p.imagelarge;
+                tm.ThumbnailUrl = _mediaService.GetURL(p.imagelarge);
 
                 //tm.CalculatedProductPrice(p);
                 //tm.CalculatedProductPrice = _productPricingService.CalculateProductPrice((decimal.Parse(p.pricewithtax)));
