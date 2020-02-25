@@ -136,7 +136,6 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
                 ViewModels.ProductThumbnail tm = new ProductThumbnail();
                 tm.Id = long.Parse(p.identifier);
                 tm.Name = p.description;
-                tm.ThumbnailUrl = p.imagelarge;
                 int r = 0;
                 _ = int.TryParse(p.stocks, out r);
                 tm.StockQuantity = r;
@@ -148,6 +147,8 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
                 tm.Slug = tm.Id+"-"+tm.Name.Replace(" ", "-");
                 Core.Models.Media pti = new ProductThumbnail().ThumbnailImage;
                 tm.ThumbnailUrl = _mediaService.GetThumbnailUrl(pti);
+                tm.ThumbnailUrl = p.imagelarge;
+
                 //tm.CalculatedProductPrice(p);
                 //tm.CalculatedProductPrice = _productPricingService.CalculateProductPrice((decimal.Parse(p.pricewithtax)));
                 tm.CalculatedProductPrice = _productPricingService.CalculateProductPrice(tm);
