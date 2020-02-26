@@ -105,30 +105,30 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
             model.Products = new List<ProductThumbnail>();
 
             //CODIGO ORIGEN
-            //var query = _productRepository.Query()
-            //  .Where(x => x.IsPublished && x.IsVisibleIndividually);
+            var query = _productRepository.Query()
+              .Where(x => x.IsPublished && x.IsVisibleIndividually);
 
-            //if (model.Setting.CategoryId.HasValue && model.Setting.CategoryId.Value > 0)
-            //{
-            //    query = query.Where(x => x.Categories.Any(c => c.CategoryId == model.Setting.CategoryId.Value));
-            //}
+            if (model.Setting.CategoryId.HasValue && model.Setting.CategoryId.Value > 0)
+            {
+                query = query.Where(x => x.Categories.Any(c => c.CategoryId == model.Setting.CategoryId.Value));
+            }
 
-            //if (model.Setting.FeaturedOnly)
-            //{
-            //    query = query.Where(x => x.IsFeatured);
-            //}
+            if (model.Setting.FeaturedOnly)
+            {
+                query = query.Where(x => x.IsFeatured);
+            }
 
-            //model.Products = query
-            //  .Include(x => x.ThumbnailImage)
-            //  .OrderByDescending(x => x.CreatedOn)
-            //  .Take(model.Setting.NumberOfProducts)
-            //  .Select(x => ProductThumbnail.FromProduct(x)).ToList();
-            //foreach (var product in model.Products)
-            //{
-            //    product.Name = _contentLocalizationService.GetLocalizedProperty(nameof(Product), product.Id, nameof(product.Name), product.Name);
-            //    product.ThumbnailUrl = _mediaService.GetThumbnailUrl(product.ThumbnailImage);
-            //    product.CalculatedProductPrice = _productPricingService.CalculateProductPrice(product);
-            //}
+            model.Products = query
+              .Include(x => x.ThumbnailImage)
+              .OrderByDescending(x => x.CreatedOn)
+              .Take(model.Setting.NumberOfProducts)
+              .Select(x => ProductThumbnail.FromProduct(x)).ToList();
+            foreach (var product in model.Products)
+            {
+                product.Name = _contentLocalizationService.GetLocalizedProperty(nameof(Product), product.Id, nameof(product.Name), product.Name);
+                product.ThumbnailUrl = _mediaService.GetThumbnailUrl(product.ThumbnailImage);
+                product.CalculatedProductPrice = _productPricingService.CalculateProductPrice(product);
+            }
 
             //FIN CODIGO ORIGEN
             foreach (producto p in productos.Result.result)
