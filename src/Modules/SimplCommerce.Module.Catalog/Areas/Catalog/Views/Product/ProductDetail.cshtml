@@ -151,7 +151,7 @@
                                 </div>
                                 <button type="button" disabled="@(!variant.IsAllowToOrder || (variant.StockTrackingIsEnabled && variant.StockQuantity <= 0))" class="btn btn-lg btn-add-cart">@Localizer["Add to cart"]</button>
                                 <div>
-                                    <ul class="list-inline add-to-lists">
+                                    @*<ul class="list-inline add-to-lists">
                                         <li class="wishlist-in">
                                             <i class="fa fa-heart"></i>
                                             @if (SignInManager.IsSignedIn(User))
@@ -167,7 +167,7 @@
                                             <i class="fa fa-exchange"></i>
                                             <a href="#" class="add-to-comparison">@Localizer["Add to Compare"]</a>
                                         </li>
-                                    </ul>
+                                    </ul>*@
                                 </div>
                             </form>
                         </div>

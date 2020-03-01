@@ -31,44 +31,48 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
         public IViewComponentResult Invoke()
         {
 
-            //var categories = _categoryRepository.Query().Where(x => !x.IsDeleted && x.IncludeInMenu).ToList();
+            var categories = _categoryRepository.Query().Where(x => !x.IsDeleted && x.IncludeInMenu).ToList();
 
-            //var categoryMenuItems = new List<CategoryMenuItem>();
+            var categoryMenuItems = new List<CategoryMenuItem>();
 
-            //var topCategories = categories.Where(x => !x.ParentId.HasValue).OrderByDescending(x => x.DisplayOrder);
+            var topCategories = categories.Where(x => !x.ParentId.HasValue).OrderByDescending(x => x.DisplayOrder);
 
-            //foreach (var category in topCategories)
-            //{
-            //    var categoryMenuItem = Map(category);
-            //    categoryMenuItems.Add(categoryMenuItem);
-            //}
+            foreach (var category in topCategories)
+            {
+                var categoryMenuItem = Map(category);
+                categoryMenuItems.Add(categoryMenuItem);
+            }
+            return View(this.GetViewPath(), categoryMenuItems);
+
             //cambios
 
-            DataCollection<area> a = new DataCollection<area>();
+            //DataCollection<area> a = new DataCollection<area>();
 
-            string ip = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(HttpContext.Features.Get<IHttpConnectionFeature>()?.RemoteIpAddress?.ToString()));
-            _sesion = GetToken(ip, _sesion);
-            if (_sesion != null)
-            {
-                HttpContext.Session.Set("id", System.Text.Encoding.UTF8.GetBytes(_sesion.activeToken));
+            //string ip = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(HttpContext.Features.Get<IHttpConnectionFeature>()?.RemoteIpAddress?.ToString()));
+            //_sesion = GetToken(ip, _sesion);
+            //if (_sesion != null)
+            //{
+            //    HttpContext.Session.Set("id", System.Text.Encoding.UTF8.GetBytes(_sesion.activeToken));
 
-            }
-            ISession sesion1 = HttpContext.Session;
+            //}
+            //ISession sesion1 = HttpContext.Session;
 
-            if (_sesion != null && _sesion.explained.ToString() != "Session NOT authorized")
-            {
-                a = areas(ip, sesion1.GetString("id")).Result;
-            }
+            //if (_sesion != null && _sesion.explained.ToString() != "Session NOT authorized")
+            //{
+            //    a = areas(ip, sesion1.GetString("id")).Result;
+            //}
+
+            //var categoryMenuItems2 = new List<CategoryMenuItem>();
+            //foreach (area ar in a.result)
+            //{
+            //    var cmi = Map(ar);
+            //    categoryMenuItems2.Add(cmi);
+            //}
+            //  return View(this.GetViewPath(), categoryMenuItems2);
 
             //fin cambios
-            var categoryMenuItems2 = new List<CategoryMenuItem>();
-            foreach (area ar in a.result)
-            {
-                var cmi = Map(ar);
-                categoryMenuItems2.Add(cmi);
-            }
-            
-            return View(this.GetViewPath(), categoryMenuItems2);
+
+
         }
         private CategoryMenuItem Map(area category)
         {

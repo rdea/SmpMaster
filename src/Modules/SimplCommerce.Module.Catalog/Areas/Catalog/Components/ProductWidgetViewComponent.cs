@@ -15,6 +15,7 @@ using SimplCommerce.Module.Catalog.Areas.Catalog.ViewModels;
 using SimplCommerce.Module.Catalog.Models;
 using SimplCommerce.Module.Catalog.Services;
 using SimplCommerce.Module.Core.Areas.Core.ViewModels;
+using SimplCommerce.Module.Core.Models;
 using SimplCommerce.Module.Core.Services;
 
 namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
@@ -25,16 +26,21 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
         private readonly IMediaService _mediaService;
         private readonly IProductPricingService _productPricingService;
         private readonly IContentLocalizationService _contentLocalizationService;
-
+        private readonly IRepository<Entity> _entityRepository;
+        private readonly IRepositoryWithTypedId<EntityType, string> _entityTypeRepository;
         public ProductWidgetViewComponent(IRepository<Product> productRepository,
             IMediaService mediaService,
             IProductPricingService productPricingService,
-            IContentLocalizationService contentLocalizationService)
+            IContentLocalizationService contentLocalizationService,
+            IRepository<Entity> entityRepository,
+            IRepositoryWithTypedId<EntityType, string> entityTypeRepository)
         {
             _productRepository = productRepository;
             _mediaService = mediaService;
             _productPricingService = productPricingService;
             _contentLocalizationService = contentLocalizationService;
+            _entityRepository = entityRepository;
+            _entityTypeRepository = entityTypeRepository;
         }
         public string GetToken(string laip)
         {
@@ -105,30 +111,30 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
             model.Products = new List<ProductThumbnail>();
 
             //CODIGO ORIGEN
-            var query = _productRepository.Query()
-              .Where(x => x.IsPublished && x.IsVisibleIndividually);
+            //var query = _productRepository.Query()
+            //  .Where(x => x.IsPublished && x.IsVisibleIndividually);
 
-            if (model.Setting.CategoryId.HasValue && model.Setting.CategoryId.Value > 0)
-            {
-                query = query.Where(x => x.Categories.Any(c => c.CategoryId == model.Setting.CategoryId.Value));
-            }
+            //if (model.Setting.CategoryId.HasValue && model.Setting.CategoryId.Value > 0)
+            //{
+            //    query = query.Where(x => x.Categories.Any(c => c.CategoryId == model.Setting.CategoryId.Value));
+            //}
 
-            if (model.Setting.FeaturedOnly)
-            {
-                query = query.Where(x => x.IsFeatured);
-            }
+            //if (model.Setting.FeaturedOnly)
+            //{
+            //    query = query.Where(x => x.IsFeatured);
+            //}
 
-            model.Products = query
-              .Include(x => x.ThumbnailImage)
-              .OrderByDescending(x => x.CreatedOn)
-              .Take(model.Setting.NumberOfProducts)
-              .Select(x => ProductThumbnail.FromProduct(x)).ToList();
-            foreach (var product in model.Products)
-            {
-                product.Name = _contentLocalizationService.GetLocalizedProperty(nameof(Product), product.Id, nameof(product.Name), product.Name);
-                product.ThumbnailUrl = _mediaService.GetThumbnailUrl(product.ThumbnailImage);
-                product.CalculatedProductPrice = _productPricingService.CalculateProductPrice(product);
-            }
+            //model.Products = query
+            //  .Include(x => x.ThumbnailImage)
+            //  .OrderByDescending(x => x.CreatedOn)
+            //  .Take(model.Setting.NumberOfProducts)
+            //  .Select(x => ProductThumbnail.FromProduct(x)).ToList();
+            //foreach (var product in model.Products)
+            //{
+            //    product.Name = _contentLocalizationService.GetLocalizedProperty(nameof(Product), product.Id, nameof(product.Name), product.Name);
+            //    product.ThumbnailUrl = _mediaService.GetThumbnailUrl(product.ThumbnailImage);
+            //    product.CalculatedProductPrice = _productPricingService.CalculateProductPrice(product);
+            //}
 
             //FIN CODIGO ORIGEN
             foreach (producto p in productos.Result.result)
@@ -145,7 +151,7 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
                 tm.Price = pr;
                 tm.ReviewsCount = int.Parse(p.likeothers);
                 tm.IsAllowToOrder = true;
-                tm.Slug = tm.Id+"-"+tm.Name.Replace(" ", "-");
+                tm.Slug =tm.Name.Replace(" ", "-");
                 Core.Models.Media pti = new ProductThumbnail().ThumbnailImage;
                 tm.ThumbnailUrl = _mediaService.GetThumbnailUrl(pti);
                 tm.ThumbnailUrl = _mediaService.GetURL(p.imagelarge);
@@ -154,7 +160,30 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
                 //tm.CalculatedProductPrice = _productPricingService.CalculateProductPrice((decimal.Parse(p.pricewithtax)));
                 tm.CalculatedProductPrice = _productPricingService.CalculateProductPrice(tm);
                 model.Products.Add(tm);
-                
+                //añadimos a la tabla slug si no existe
+                var entity =  _entityRepository
+                .Query()
+                .Include(x => x.EntityType)
+                .FirstOrDefault(x => x.Slug == tm.Slug);
+                if (entity == null)
+                {
+                    Entity en = new Entity();
+                    
+                    en.EntityId = (long)tm.Id;
+                    en.Name = tm.Name;
+                    en.Slug = tm.Slug+"-"+tm.Id;
+                    var enType = _entityTypeRepository.Query().FirstOrDefault(x => x.Id == "Product");
+                    en.EntityType = enType;
+
+                    //en.EntityType = (EntityType)enType;
+                    //en.EntityType = new EntityType("Product");
+                    //en.EntityType.AreaName = "Catalog";
+                    //en.EntityType.IsMenuable = false;
+                    //en.EntityType.RoutingController = "Product";
+                    //en.EntityType.RoutingAction = "ProductDetail";
+                    _entityRepository.Add(en);
+                    _entityRepository.SaveChanges();
+                }
             }
 
             return View(this.GetViewPath(), model);

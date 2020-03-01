@@ -3,6 +3,7 @@
 <div class="card mb-4">
     <input type="hidden" id="productId" value="@Model.Id" />
     <a href="~/@Model.Slug">
+        @*@Html.ActionLink("", "ProductDetail", "Product", new { id = Model.Id}, null)*@
         <img alt="@Model.Name" class="card-img-top" src="@Model.ThumbnailUrl">
         <div class="card-body">
             <h5 class="card-title product-name">@Model.Name</h5>
@@ -17,13 +18,13 @@
                     if (Model.CalculatedProductPrice.PercentOfSaving > 0)
                     {
                         <span class="product-price-saving">-@(Model.CalculatedProductPrice.PercentOfSaving)%</span>
-                        <br/>
+                        <br />
                         <span class="product-price-regular">@Model.CalculatedProductPrice.OldPriceString</span>
                     }
                 }
             </p>
             <ul class="list-inline product-ratings">
-                <li><input type="hidden" value="@Model.RatingAverage" readonly="readonly" class="rating-loading" step="1" data-size="xs" data-show-clear="false" data-show-caption="false"/></li>
+                <li><input type="hidden" value="@Model.RatingAverage" readonly="readonly" class="rating-loading" step="1" data-size="xs" data-show-clear="false" data-show-caption="false" /></li>
                 @if (Model.ReviewsCount > 0)
                 {
                     <li class="product-review-list">
