@@ -1,8 +1,13 @@
 ﻿using System;
 using System.Linq;
+using System.Net;
+using CRM.Models;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json;
 using SimplCommerce.Infrastructure.Data;
 using SimplCommerce.Module.Catalog.Areas.Catalog.ViewModels;
 using SimplCommerce.Module.Catalog.Models;
@@ -52,7 +57,7 @@ namespace SimplCommerce.Module.Search.Areas.Search.Controllers
             {
                 return Redirect("~/");
             }
-
+            var productos = RecuperaArtículosQuery(GetIP(), GetSession(), searchOption.Query);
             var brand = _brandRepository.Query().FirstOrDefault(x => x.Name == searchOption.Query && x.IsPublished);
             if (brand != null)
             {
@@ -133,6 +138,69 @@ namespace SimplCommerce.Module.Search.Areas.Search.Controllers
             model.CurrentSearchOption.Page = currentPageNum;
 
             return View(model);
+        }
+        public DataCollection<producto> RecuperaArtículosQuery(string laip, string _sesionToken, string cadena)
+        {
+            var result = new DataCollection<producto>();
+
+            //resultList _area;
+            // string token = GetToken(laip).activeToken;
+            //string de url principal
+            string urlPath = "https://riews.reinfoempresa.com:8443"; 
+            string order = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(""));
+
+            //string codeidentifier = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(identificador.ToString()));
+            string statement = "[{\"statementv1\":[{ \"field\":\"DESCRIPTION\",\"like\":\"=\",\"fieldliteral\":\"%\"" + cadena+"%\",\"type\":\"text\",\"connector\":\"}]}]";
+            //string de la url del método de llamada
+            //https://riews.reinfoempresa.com:8443/RIEWS/webapi/PrivateServices/articles1
+            string request2 = urlPath + "/RIEWS/webapi/PrivateServices/articles2W";
+            //creamos un webRequest con el tipo de método.
+            WebRequest webRequest = WebRequest.Create(request2);
+            //definimos el tipo de webrequest al que llamaremos
+            webRequest.Method = "POST";
+            //definimos content\
+            webRequest.ContentType = "application/json; charset=utf-8";
+            //cargamos los datos a enviar
+            using (var streamWriter = new System.IO.StreamWriter(webRequest.GetRequestStream()))
+            {
+                //string json = "{\"token\":\"" + token + "\",\"ipbase64\":\"" + laip +"}";
+                string json = "{\"token\":\"" + _sesionToken + "\",\"filter\":\"" + System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(statement)) + "\",\"ipbase64\":\"" + laip + "\",\"orderby\":\"" + order + "\",\"initrec\":\"" + 1 + "\",\"maxrecs\":\"" + 9 + "\"}";
+                streamWriter.Write(json.ToString());
+                //"  "
+            }
+            //obtenemos la respuesta del servidor
+            var httpResponse = (HttpWebResponse)webRequest.GetResponse();
+            //leemos la respuesta y la tratamos
+            using (var streamReader = new System.IO.StreamReader(httpResponse.GetResponseStream()))
+            {
+                var result2 = streamReader.ReadToEnd();
+                //traducimos el resultado
+                // result = JsonSerializer.Deserialize<DataCollectionSingle<producto>>(result2);
+                result = JsonConvert.DeserializeObject<DataCollection<producto>>(result2);
+            }
+            //
+            //if (_area == null)
+            //{
+            //    _area = new resultList();
+            //    _area.result = new List<result>();
+            //    _area.result[0].areaname = "vacia";
+            //}
+
+            return result;
+        }
+        public string GetIP()
+        {
+            return System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(HttpContext.Features.Get<IHttpConnectionFeature>()?.RemoteIpAddress?.ToString()));
+        }
+        public string GetSession()
+        {
+            string se = HttpContext.Session.GetString("id");
+            if (se == null)
+            {
+                se = comunes.GetToken(GetIP());
+                HttpContext.Session.Set("id", System.Text.Encoding.UTF8.GetBytes(se));
+            }
+            return HttpContext.Session.GetString("id");
         }
 
         private static IQueryable<Product> AppySort(SearchOption searchOption, IQueryable<Product> query)
