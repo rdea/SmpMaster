@@ -149,8 +149,12 @@ namespace SimplCommerce.Module.Search.Areas.Search.Controllers
             string urlPath = "https://riews.reinfoempresa.com:8443"; 
             string order = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(""));
 
-            //string codeidentifier = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(identificador.ToString()));
-            string statement = "[{\"statementv1\":[{ \"field\":\"DESCRIPTION\",\"like\":\"=\",\"fieldliteral\":\"%\"" + cadena+"%\",\"type\":\"text\",\"connector\":\"}]}]";
+           // string codeidentifier = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(identificador.ToString()));
+            string statement = @"[{""statementv1"":[{ ""field"":""DESCRIPTION"",""like"":""="",""fieldliteral"":""%";
+            statement += cadena;
+            statement += @"%"",""type"":""text"",""connector"":""}],""connector"":""}]";
+
+            statement = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(statement));
             //string de la url del método de llamada
             //https://riews.reinfoempresa.com:8443/RIEWS/webapi/PrivateServices/articles1
             string request2 = urlPath + "/RIEWS/webapi/PrivateServices/articles2W";
@@ -164,7 +168,7 @@ namespace SimplCommerce.Module.Search.Areas.Search.Controllers
             using (var streamWriter = new System.IO.StreamWriter(webRequest.GetRequestStream()))
             {
                 //string json = "{\"token\":\"" + token + "\",\"ipbase64\":\"" + laip +"}";
-                string json = "{\"token\":\"" + _sesionToken + "\",\"filter\":\"" + System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(statement)) + "\",\"ipbase64\":\"" + laip + "\",\"orderby\":\"" + order + "\",\"initrec\":\"" + 1 + "\",\"maxrecs\":\"" + 9 + "\"}";
+                string json = "{\"token\":\"" + _sesionToken + "\",\"filter\":\"" +statement + "\",\"orderby\":\"" + order + "\",\"initrec\":\"" + 1 + "\",\"maxrecs\":\"" + 9 + "\",\"ipbase64\":\"" + laip + "\"}";
                 streamWriter.Write(json.ToString());
                 //"  "
             }
