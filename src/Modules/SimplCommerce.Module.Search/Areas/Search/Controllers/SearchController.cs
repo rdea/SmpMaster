@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Net;
+using System.Text;
 using CRM.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
@@ -142,19 +143,24 @@ namespace SimplCommerce.Module.Search.Areas.Search.Controllers
         public DataCollection<producto> RecuperaArtículosQuery(string laip, string _sesionToken, string cadena)
         {
             var result = new DataCollection<producto>();
-
+            
             //resultList _area;
             // string token = GetToken(laip).activeToken;
             //string de url principal
             string urlPath = "https://riews.reinfoempresa.com:8443"; 
-            string order = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(""));
+            string order = System.Convert.ToBase64String(System.Text.Encoding.Default.GetBytes("DESCRIPTION DESC"));
 
-           // string codeidentifier = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(identificador.ToString()));
-            string statement = @"[{""statementv1"":[{ ""field"":""DESCRIPTION"",""like"":""="",""fieldliteral"":""%";
-            statement += cadena;
-            statement += @"%"",""type"":""text"",""connector"":""}],""connector"":""}]";
+            //esta sentencia funciona
+            ///[{"statementv1":[{"field":"DESCRIPTION","operator":"like","fieldliteral":"%%","type":"text","connector":"and"},{"field":"PRICEWITHTAX","operator":">=","fieldliteral":"'0.01'","type":"numeric","connector":"and"},{"field":"PRICEWITHTAX","operator":"<=","fieldliteral":"'1000'","type":"numeric","connector":""}]}]
+            
+            // string codeidentifier = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(identificador.ToString()));
+            string statement = @"[{""statementv1"":[{""field"":""DESCRIPTION"",""operator"":""like"",""fieldliteral"":""%";
+            statement += cadena.ToUpper();
+            statement += @"%"",""type"":""text"",""connector"":""""}]}]";
 
-            statement = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(statement));
+            statement = System.Convert.ToBase64String(Encoding.Default.GetBytes(statement));
+            //statement = @"W3sic3RhdGVtZW50djEiOlt7ImZpZWxkIjoiREVTQ1JJUFRJT04iLCJvcGVyYXRvciI6Imxpa2UiLCJmaWVsZGxpdGVyYWwiOiIlbWFydGklIiwidHlwZSI6InRleHQiLCJjb25uZWN0b3IiOiJhbmQifSx7ImZpZWxkIjoiUFJJQ0VXSVRIVEFYIiwib3BlcmF0b3IiOiI+PSIsImZpZWxkbGl0ZXJhbCI6IicwLjAxJyIsInR5cGUiOiJudW1lcmljIiwiY29ubmVjdG9yIjoiYW5kIn0seyJmaWVsZCI6IlBSSUNFV0lUSFRBWCIsIm9wZXJhdG9yIjoiPD0iLCJmaWVsZGxpdGVyYWwiOiInMTAwMCciLCJ0eXBlIjoibnVtZXJpYyIsImNvbm5lY3RvciI6IiJ9XX1d";
+           // statement = @"W3sic3RhdGVtZW50djEiOlt7ImZpZWxkIjoiREVTQ1JJUFRJT04iLCJvcGVyYXRvciI6Imxpa2UiLCJmaWVsZGxpdGVyYWwiOiIlJSIsInR5cGUiOiJ0ZXh0IiwiY29ubmVjdG9yIjoiYW5kIn0seyJmaWVsZCI6IlBSSUNFV0lUSFRBWCIsIm9wZXJhdG9yIjoiPj0iLCJmaWVsZGxpdGVyYWwiOiInMC4wMSciLCJ0eXBlIjoibnVtZXJpYyIsImNvbm5lY3RvciI6ImFuZCJ9LHsiZmllbGQiOiJQUklDRVdJVEhUQVgiLCJvcGVyYXRvciI6Ijw9IiwiZmllbGRsaXRlcmFsIjoiJzEwMDAnIiwidHlwZSI6Im51bWVyaWMiLCJjb25uZWN0b3IiOiIifV19XQ==";
             //string de la url del método de llamada
             //https://riews.reinfoempresa.com:8443/RIEWS/webapi/PrivateServices/articles1
             string request2 = urlPath + "/RIEWS/webapi/PrivateServices/articles2W";
