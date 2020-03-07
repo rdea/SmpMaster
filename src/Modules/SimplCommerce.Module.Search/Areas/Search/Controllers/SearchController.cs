@@ -151,7 +151,7 @@ namespace SimplCommerce.Module.Search.Areas.Search.Controllers
             string order = System.Convert.ToBase64String(System.Text.Encoding.Default.GetBytes("DESCRIPTION DESC"));
 
             //esta sentencia funciona
-            ///[{"statementv1":[{"field":"DESCRIPTION","operator":"like","fieldliteral":"%%","type":"text","connector":"and"},{"field":"PRICEWITHTAX","operator":">=","fieldliteral":"'0.01'","type":"numeric","connector":"and"},{"field":"PRICEWITHTAX","operator":"<=","fieldliteral":"'1000'","type":"numeric","connector":""}]}]
+            //[{"statementv1":[{"field":"DESCRIPTION","operator":"like","fieldliteral":"%%","type":"text","connector":"and"},{"field":"PRICEWITHTAX","operator":">=","fieldliteral":"'0.01'","type":"numeric","connector":"and"},{"field":"PRICEWITHTAX","operator":"<=","fieldliteral":"'1000'","type":"numeric","connector":""}]}]
             
             // string codeidentifier = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(identificador.ToString()));
             string statement = @"[{""statementv1"":[{""field"":""DESCRIPTION"",""operator"":""like"",""fieldliteral"":""%";
