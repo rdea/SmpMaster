@@ -13,6 +13,7 @@ using SimplCommerce.Infrastructure.Data;
 using SimplCommerce.Module.Catalog.Areas.Catalog.ViewModels;
 using SimplCommerce.Module.Catalog.Models;
 using SimplCommerce.Module.Catalog.Services;
+using SimplCommerce.Module.Core.Models;
 using SimplCommerce.Module.Core.Services;
 using SimplCommerce.Module.Search.Areas.Search.ViewModels;
 using SimplCommerce.Module.Search.Models;
@@ -31,6 +32,8 @@ namespace SimplCommerce.Module.Search.Areas.Search.Controllers
         private readonly IRepository<Query> _queryRepository;
         private readonly IProductPricingService _productPricingService;
         private readonly IContentLocalizationService _contentLocalizationService;
+        private readonly IRepository<Entity> _entityRepository;
+        private readonly IRepositoryWithTypedId<EntityType, string> _entityTypeRepository;
 
         public SearchController(IRepository<Product> productRepository,
             IRepository<Brand> brandRepository,
@@ -39,6 +42,8 @@ namespace SimplCommerce.Module.Search.Areas.Search.Controllers
             IRepository<Query> queryRepository,
             IProductPricingService productPricingService,
             IContentLocalizationService contentLocalizationService,
+            IRepository<Entity> entityRepository,
+            IRepositoryWithTypedId<EntityType, string> entityTypeRepository,
             IConfiguration config)
         {
             _productRepository = productRepository;
@@ -49,6 +54,8 @@ namespace SimplCommerce.Module.Search.Areas.Search.Controllers
             _productPricingService = productPricingService;
             _contentLocalizationService = contentLocalizationService;
             _pageSize = config.GetValue<int>("Catalog.ProductPageSize");
+            _entityRepository = entityRepository;
+            _entityTypeRepository = entityTypeRepository;
         }
 
         [HttpGet("search")]
@@ -59,55 +66,20 @@ namespace SimplCommerce.Module.Search.Areas.Search.Controllers
                 return Redirect("~/");
             }
             var productos = RecuperaArtículosQuery(GetIP(), GetSession(), searchOption.Query);
-            var brand = _brandRepository.Query().FirstOrDefault(x => x.Name == searchOption.Query && x.IsPublished);
-            if (brand != null)
-            {
-                return Redirect(string.Format("~/{0}", brand.Slug));
-            }
-
             var model = new SearchResult
             {
                 CurrentSearchOption = searchOption,
                 FilterOption = new FilterOption()
             };
 
-            var query = _productRepository.Query().Where(x => x.Name.Contains(searchOption.Query) && x.IsPublished && x.IsVisibleIndividually);
-
-            if (!query.Any())
+            if (productos.result.Count == 0 || productos is null)
             {
                 model.TotalProduct = 0;
                 return View(model);
             }
+            //AppendFilterOptionsToModel(model, query);
 
-            AppendFilterOptionsToModel(model, query);
-
-            if (searchOption.MinPrice.HasValue)
-            {
-                query = query.Where(x => x.Price >= searchOption.MinPrice.Value);
-            }
-
-            if (searchOption.MaxPrice.HasValue)
-            {
-                query = query.Where(x => x.Price <= searchOption.MaxPrice.Value);
-            }
-
-            if (string.Compare(model.CurrentSearchOption.Category, "all", StringComparison.OrdinalIgnoreCase) != 0)
-            {
-                var categories = searchOption.GetCategories().ToArray();
-                if (categories.Any())
-                {
-                    query = query.Where(x => x.Categories.Any(c => categories.Contains(c.Category.Slug)));
-                }
-            }
-
-            // EF Core bug, so we have to covert to Array
-            var brands = searchOption.GetBrands().ToArray();
-            if (brands.Any())
-            {
-                query = query.Where(x => x.BrandId.HasValue && brands.Contains(x.Brand.Slug));
-            }
-
-            model.TotalProduct = query.Count();
+            model.TotalProduct = productos.result.Count();
             var currentPageNum = searchOption.Page <= 0 ? 1 : searchOption.Page;
             var offset = (_pageSize * currentPageNum) - _pageSize;
             while (currentPageNum > 1 && offset >= model.TotalProduct)
@@ -116,29 +88,150 @@ namespace SimplCommerce.Module.Search.Areas.Search.Controllers
                 offset = (_pageSize * currentPageNum) - _pageSize;
             }
 
-            SaveSearchQuery(searchOption, model);
 
-            query = AppySort(searchOption, query);
-
-            var products = query
-                .Include(x => x.ThumbnailImage)
-                .Skip(offset)
-                .Take(_pageSize)
-                .Select(x => ProductThumbnail.FromProduct(x))
-                .ToList();
-
-            foreach (var product in products)
+            foreach (var p  in productos.result)
             {
-                product.Name = _contentLocalizationService.GetLocalizedProperty(nameof(Product), product.Id, nameof(product.Name), product.Name);
-                product.ThumbnailUrl = _mediaService.GetThumbnailUrl(product.ThumbnailImage);
-                product.CalculatedProductPrice = _productPricingService.CalculateProductPrice(product);
+                ProductThumbnail tm = new ProductThumbnail();
+                tm.Id = long.Parse(p.identifier);
+                tm.Name = p.description;
+                tm.ThumbnailUrl = p.imagelarge;
+                int r = 0;
+                _ = int.TryParse(p.stocks, out r);
+                tm.StockQuantity = r;
+                decimal pr = 0;
+                pr = decimal.Parse(p.pricewithtax);
+                tm.Price = pr;
+                tm.ReviewsCount = int.Parse(p.likeothers);
+                tm.IsAllowToOrder = true;
+                tm.Slug = tm.Name.Replace(" ", "-");
+                Core.Models.Media pti = new ProductThumbnail().ThumbnailImage;
+                tm.ThumbnailUrl = _mediaService.GetThumbnailUrl(pti);
+                tm.ThumbnailUrl = _mediaService.GetURL(p.imagelarge);
+
+                //tm.CalculatedProductPrice(p);
+                //tm.CalculatedProductPrice = _productPricingService.CalculateProductPrice((decimal.Parse(p.pricewithtax)));
+                tm.CalculatedProductPrice = _productPricingService.CalculateProductPrice(tm);
+                model.Products.Add(tm);
+                //añadimos a la tabla slug si no existe
+                var entity = _entityRepository
+                .Query()
+                .Include(x => x.EntityType)
+                .FirstOrDefault(x => x.Slug == tm.Slug);
+                if (entity == null)
+                {
+                    Entity en = new Entity();
+
+                    en.EntityId = (long)tm.Id;
+                    en.Name = tm.Name;
+                    en.Slug = tm.Slug + "-" + tm.Id;
+                    var enType = _entityTypeRepository.Query().FirstOrDefault(x => x.Id == "Product");
+                    en.EntityType = enType;
+
+                    //en.EntityType = (EntityType)enType;
+                    //en.EntityType = new EntityType("Product");
+                    //en.EntityType.AreaName = "Catalog";
+                    //en.EntityType.IsMenuable = false;
+                    //en.EntityType.RoutingController = "Product";
+                    //en.EntityType.RoutingAction = "ProductDetail";
+                    _entityRepository.Add(en);
+                    _entityRepository.SaveChanges();
+                }
             }
 
-            model.Products = products;
+            
             model.CurrentSearchOption.PageSize = _pageSize;
             model.CurrentSearchOption.Page = currentPageNum;
 
             return View(model);
+
+
+
+
+
+
+
+            //var brand = _brandRepository.Query().FirstOrDefault(x => x.Name == searchOption.Query && x.IsPublished);
+            //if (brand != null)
+            //{
+            //    return Redirect(string.Format("~/{0}", brand.Slug));
+            //}
+
+            //var model = new SearchResult
+            //{
+            //    CurrentSearchOption = searchOption,
+            //    FilterOption = new FilterOption()
+            //};
+
+            //var query = _productRepository.Query().Where(x => x.Name.Contains(searchOption.Query) && x.IsPublished && x.IsVisibleIndividually);
+            //if (!query.Any())
+            //{
+            //    model.TotalProduct = 0;
+            //    return View(model);
+            //}
+
+
+
+
+            //AppendFilterOptionsToModel(model, query);
+
+            //if (searchOption.MinPrice.HasValue)
+            //{
+            //    query = query.Where(x => x.Price >= searchOption.MinPrice.Value);
+            //}
+
+            //if (searchOption.MaxPrice.HasValue)
+            //{
+            //    query = query.Where(x => x.Price <= searchOption.MaxPrice.Value);
+            //}
+
+            //if (string.Compare(model.CurrentSearchOption.Category, "all", StringComparison.OrdinalIgnoreCase) != 0)
+            //{
+            //    var categories = searchOption.GetCategories().ToArray();
+            //    if (categories.Any())
+            //    {
+            //        query = query.Where(x => x.Categories.Any(c => categories.Contains(c.Category.Slug)));
+            //    }
+            //}
+
+            //// EF Core bug, so we have to covert to Array
+            //var brands = searchOption.GetBrands().ToArray();
+            //if (brands.Any())
+            //{
+            //    query = query.Where(x => x.BrandId.HasValue && brands.Contains(x.Brand.Slug));
+            //}
+
+            //model.TotalProduct = query.Count();
+            //var currentPageNum = searchOption.Page <= 0 ? 1 : searchOption.Page;
+            //var offset = (_pageSize * currentPageNum) - _pageSize;
+            //while (currentPageNum > 1 && offset >= model.TotalProduct)
+            //{
+            //    currentPageNum--;
+            //    offset = (_pageSize * currentPageNum) - _pageSize;
+            //}
+
+            //SaveSearchQuery(searchOption, model);
+
+            //query = AppySort(searchOption, query);
+
+            //var products = query
+            //    .Include(x => x.ThumbnailImage)
+            //    .Skip(offset)
+            //    .Take(_pageSize)
+            //    .Select(x => ProductThumbnail.FromProduct(x))
+            //    .ToList();
+
+            //foreach (var product in products)
+            //{
+            //    product.Name = _contentLocalizationService.GetLocalizedProperty(nameof(Product), product.Id, nameof(product.Name), product.Name);
+            //    product.ThumbnailUrl = _mediaService.GetThumbnailUrl(product.ThumbnailImage);
+            //    product.CalculatedProductPrice = _productPricingService.CalculateProductPrice(product);
+            //}
+
+            //model.Products = products;
+            //model.CurrentSearchOption.PageSize = _pageSize;
+            //model.CurrentSearchOption.Page = currentPageNum;
+
+            //return View(model);
         }
         public DataCollection<producto> RecuperaArtículosQuery(string laip, string _sesionToken, string cadena)
         {
@@ -155,7 +248,7 @@ namespace SimplCommerce.Module.Search.Areas.Search.Controllers
             
             // string codeidentifier = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(identificador.ToString()));
             string statement = @"[{""statementv1"":[{""field"":""DESCRIPTION"",""operator"":""like"",""fieldliteral"":""%";
-            statement += cadena.ToUpper();
+            statement += cadena;
             statement += @"%"",""type"":""text"",""connector"":""""}]}]";
 
             statement = System.Convert.ToBase64String(Encoding.Default.GetBytes(statement));
