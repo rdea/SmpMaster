@@ -158,7 +158,7 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
                     Count = g.Count()
                 }).ToList();
         }
-        public DataCollection<producto> RecuperaArtículosQuery(string laip, string _sesionToken, string cadena)
+        public DataCollection<producto> RecuperaArtículosCategoria(string laip, string _sesionToken, string cadena)
         {
             var result = new DataCollection<producto>();
 

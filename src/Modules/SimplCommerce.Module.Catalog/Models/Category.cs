@@ -40,5 +40,15 @@ namespace SimplCommerce.Module.Catalog.Models
         public IList<Category> Children { get; protected set; } = new List<Category>();
 
         public Media ThumbnailImage { get; set; }
+        //[StringLength(450)]
+        //public string division { get; set; }
+        //[StringLength(450)]
+        //public string section { get; set; }
+        //[StringLength(450)]
+        //public string subsection { get; set; }
+        //[StringLength(450)]
+        //public string family { get; set; }
+        //[StringLength(450)]
+        //public string subfamily  { get; set; }
     }
 }
