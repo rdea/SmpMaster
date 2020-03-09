@@ -125,6 +125,7 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
 
             return View(model);
         }
+       
 
         private static IQueryable<Product> ApplySort(SearchOption searchOption, IQueryable<Product> query)
         {
