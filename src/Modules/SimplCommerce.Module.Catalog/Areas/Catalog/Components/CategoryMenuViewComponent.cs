@@ -7,11 +7,13 @@ using CRM.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using SimplCommerce.Infrastructure.Data;
 using SimplCommerce.Infrastructure.Web;
 using SimplCommerce.Module.Catalog.Areas.Catalog.ViewModels;
 using SimplCommerce.Module.Catalog.Models;
+using SimplCommerce.Module.Core.Models;
 using SimplCommerce.Module.Core.Services;
 
 
@@ -20,57 +22,62 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
     public class CategoryMenuViewComponent : ViewComponent
     {
         private readonly IRepository<Category> _categoryRepository;
-        private readonly IContentLocalizationService _contentLocalizationService;
+        private readonly IContentLocalizationService _contentLocalizationService; 
+        private readonly IRepository<Entity> _entityRepository;
+        private readonly IRepositoryWithTypedId<EntityType, string> _entityTypeRepository;
+
         sesion _sesion;
-        public CategoryMenuViewComponent(IRepository<Category> categoryRepository, IContentLocalizationService contentLocalizationService)
+        public CategoryMenuViewComponent(IRepository<Category> categoryRepository, IContentLocalizationService contentLocalizationService, IRepository<Entity> entityRepository, IRepositoryWithTypedId<EntityType, string> entityTypeRepository)
         {
             _categoryRepository = categoryRepository;
             _contentLocalizationService = contentLocalizationService;
+            _entityRepository = entityRepository;
+            _entityTypeRepository = entityTypeRepository;
         }
 
         public IViewComponentResult Invoke()
         {
 
-            var categories = _categoryRepository.Query().Where(x => !x.IsDeleted && x.IncludeInMenu).ToList();
+            //var categories = _categoryRepository.Query().Where(x => !x.IsDeleted && x.IncludeInMenu).ToList();
 
-            var categoryMenuItems = new List<CategoryMenuItem>();
+            //var categoryMenuItems = new List<CategoryMenuItem>();
 
-            var topCategories = categories.Where(x => !x.ParentId.HasValue).OrderByDescending(x => x.DisplayOrder);
+            //var topCategories = categories.Where(x => !x.ParentId.HasValue).OrderByDescending(x => x.DisplayOrder);
 
-            foreach (var category in topCategories)
+            //foreach (var category in topCategories)
+            //{
+            //    var categoryMenuItem = Map(category);
+            //    categoryMenuItems.Add(categoryMenuItem);
+            //}
+            //return View(this.GetViewPath(), categoryMenuItems);
+
+           // cambios
+
+            DataCollection<area> a = new DataCollection<area>();
+
+            string ip = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(HttpContext.Features.Get<IHttpConnectionFeature>()?.RemoteIpAddress?.ToString()));
+            _sesion = GetToken(ip, _sesion);
+            if (_sesion != null)
             {
-                var categoryMenuItem = Map(category);
-                categoryMenuItems.Add(categoryMenuItem);
+                HttpContext.Session.Set("id", System.Text.Encoding.UTF8.GetBytes(_sesion.activeToken));
+
             }
-            return View(this.GetViewPath(), categoryMenuItems);
+            ISession sesion1 = HttpContext.Session;
 
-            //cambios
+            if (_sesion != null && _sesion.explained.ToString() != "Session NOT authorized")
+            {
+                a = areas(ip, sesion1.GetString("id")).Result;
+            }
 
-            //DataCollection<area> a = new DataCollection<area>();
+            var categoryMenuItems2 = new List<CategoryMenuItem>();
+            foreach (area ar in a.result)
+            {
+                var cmi = Map(ar);
+                categoryMenuItems2.Add(cmi);
+            }
+            return View(this.GetViewPath(), categoryMenuItems2);
 
-            //string ip = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(HttpContext.Features.Get<IHttpConnectionFeature>()?.RemoteIpAddress?.ToString()));
-            //_sesion = GetToken(ip, _sesion);
-            //if (_sesion != null)
-            //{
-            //    HttpContext.Session.Set("id", System.Text.Encoding.UTF8.GetBytes(_sesion.activeToken));
-
-            //}
-            //ISession sesion1 = HttpContext.Session;
-
-            //if (_sesion != null && _sesion.explained.ToString() != "Session NOT authorized")
-            //{
-            //    a = areas(ip, sesion1.GetString("id")).Result;
-            //}
-
-            //var categoryMenuItems2 = new List<CategoryMenuItem>();
-            //foreach (area ar in a.result)
-            //{
-            //    var cmi = Map(ar);
-            //    categoryMenuItems2.Add(cmi);
-            //}
-            //  return View(this.GetViewPath(), categoryMenuItems2);
-
-            //fin cambios
+         //   fin cambios
 
 
         }
@@ -190,6 +197,41 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
                         AMenu.Add(a);
                     }
                 }
+                //añadimos a la tabla slug si no existe // 
+                // TODO CAMBIOS
+                Category c = new Category();
+                c.Slug = a.areaname;
+                c.Division = int.Parse(a.division);
+                c.Name = a.areaname;
+                c.Description = a.areaname;
+                c.Family = int.Parse(a.family);
+                c.Subfamily = int.Parse(a.subfamily);
+                c.Subsection = int.Parse(a.subsection);
+                c.Section = int.Parse(a.section);
+                
+                var entity = _entityRepository
+                .Query()
+                .Include(x => x.EntityType)
+                .FirstOrDefault(x => x.Slug == c.Slug);
+                if (entity == null)
+                {
+                    Entity en = new Entity();
+
+                    en.EntityId = (long)c.Id;
+                    en.Name = c.Description;
+                    en.Slug = c.Slug + "-" + c.Id;
+                    var enType = _entityTypeRepository.Query().FirstOrDefault(x => x.Id == "Category");
+                    en.EntityType = enType;
+
+                    //en.EntityType = (EntityType)enType;
+                    //en.EntityType = new EntityType("Product");
+                    //en.EntityType.AreaName = "Catalog";
+                    //en.EntityType.IsMenuable = false;
+                    //en.EntityType.RoutingController = "Product";
+                    //en.EntityType.RoutingAction = "ProductDetail";
+                    _entityRepository.Add(en);
+                    _entityRepository.SaveChanges();
+                }
             }
             List<area> AMenud = new List<area>();// = new IEnumerable<Area>();
 
@@ -205,6 +247,7 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
                         }
                         }
                     AMenud.Add(a);
+                    
                                 }
                             }
 
