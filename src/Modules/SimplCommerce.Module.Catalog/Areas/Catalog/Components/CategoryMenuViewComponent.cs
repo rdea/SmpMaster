@@ -208,7 +208,8 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
                 c.Subfamily = int.Parse(a.subfamily);
                 c.Subsection = int.Parse(a.subsection);
                 c.Section = int.Parse(a.section);
-                
+                _categoryRepository.Add(c);
+                _categoryRepository.SaveChanges();
                 var entity = _entityRepository
                 .Query()
                 .Include(x => x.EntityType)
