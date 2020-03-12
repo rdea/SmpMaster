@@ -200,7 +200,7 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
                 //añadimos a la tabla slug si no existe // 
                 // TODO CAMBIOS
                 Category c = new Category();
-                c.Slug = a.areaname;
+                
                 c.Division = int.Parse(a.division);
                 c.Name = a.areaname;
                 c.Description = a.areaname;
@@ -208,11 +208,30 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
                 c.Subfamily = int.Parse(a.subfamily);
                 c.Subsection = int.Parse(a.subsection);
                 c.Section = int.Parse(a.section);
-                _categoryRepository.Add(c);
-                _categoryRepository.SaveChanges();
+
+                var V = _categoryRepository
+                    .Query()
+                    .FirstOrDefault(x => x.Name == c.Name);
+                if (V == null)
+                {
+                    var V1 = _categoryRepository
+                    .Query()
+                    .FirstOrDefault(x => x.Name == c.Name);
+                    if (V1 != null)
+                    {
+                        _categoryRepository.Remove(c);
+                        _categoryRepository.SaveChanges();
+                        c.Slug = a.areaname + "-" + V1.Id;
+                        _categoryRepository.Add(c);
+                        _categoryRepository.SaveChanges();
+                    }
+
+                }
+                
+
                 var entity = _entityRepository
                 .Query()
-                .Include(x => x.EntityType)
+                 .Include(x => x.EntityType)
                 .FirstOrDefault(x => x.Slug == c.Slug);
                 if (entity == null)
                 {
