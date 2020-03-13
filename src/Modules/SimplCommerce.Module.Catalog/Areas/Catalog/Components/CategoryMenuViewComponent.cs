@@ -87,7 +87,8 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
             {
                 Id = long.Parse(category.division),
                 Name = category.areaname
-            };
+                //Slug = category.areaname + "-" + category.id;
+        };
             
             var childCategories = category.hijos;
 
@@ -186,17 +187,7 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
             List<area> AMenu = new List<area>();// = new IEnumerable<Area>();
             foreach (area a in result.result)
             {
-                if ((int.Parse(a.division.ToString()) > 0 && int.Parse(a.section.ToString()) == 0 && int.Parse(a.subsection.ToString()) == 0) && int.Parse(a.family.ToString()) == 0 && int.Parse(a.subfamily.ToString()) == 0)
-                {
-                    AMenu.Add(a);
-                }
-                else
-                {
-                    if ((int.Parse(a.division.ToString()) > 0 && int.Parse(a.section.ToString()) > 0 && int.Parse(a.subsection.ToString()) == 0) && int.Parse(a.family.ToString()) == 0 && int.Parse(a.subfamily.ToString()) == 0)
-                    {
-                        AMenu.Add(a);
-                    }
-                }
+               
                 //añadimos a la tabla slug si no existe // 
                 // TODO CAMBIOS
                 Category c = new Category();
@@ -222,6 +213,7 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
                         _categoryRepository.Remove(c);
                         _categoryRepository.SaveChanges();
                         c.Slug = a.areaname + "-" + V1.Id;
+                        a.id = V1.Id;
                         _categoryRepository.Add(c);
                         _categoryRepository.SaveChanges();
                     }
@@ -242,7 +234,8 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
                     en.Slug = c.Slug + "-" + c.Id;
                     var enType = _entityTypeRepository.Query().FirstOrDefault(x => x.Id == "Category");
                     en.EntityType = enType;
-
+                    a.slug = en.Slug;
+                  //  a.id = c.Id;
                     //en.EntityType = (EntityType)enType;
                     //en.EntityType = new EntityType("Product");
                     //en.EntityType.AreaName = "Catalog";
@@ -251,6 +244,17 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
                     //en.EntityType.RoutingAction = "ProductDetail";
                     _entityRepository.Add(en);
                     _entityRepository.SaveChanges();
+                }
+                if ((int.Parse(a.division.ToString()) > 0 && int.Parse(a.section.ToString()) == 0 && int.Parse(a.subsection.ToString()) == 0) && int.Parse(a.family.ToString()) == 0 && int.Parse(a.subfamily.ToString()) == 0)
+                {
+                    AMenu.Add(a);
+                }
+                else
+                {
+                    if ((int.Parse(a.division.ToString()) > 0 && int.Parse(a.section.ToString()) > 0 && int.Parse(a.subsection.ToString()) == 0) && int.Parse(a.family.ToString()) == 0 && int.Parse(a.subfamily.ToString()) == 0)
+                    {
+                        AMenu.Add(a);
+                    }
                 }
             }
             List<area> AMenud = new List<area>();// = new IEnumerable<Area>();

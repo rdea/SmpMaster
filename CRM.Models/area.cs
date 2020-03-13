@@ -13,5 +13,7 @@ namespace CRM.Models
         public string division { get; set; }
         public string enterprise { get; set; }
         public List<area> hijos = new List<area>();
+        public long id { get; set; }
+        public string slug { get; set; }
     }
 }
