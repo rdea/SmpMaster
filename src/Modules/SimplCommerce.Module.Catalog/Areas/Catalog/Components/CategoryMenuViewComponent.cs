@@ -208,6 +208,7 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
                     var V1 = _categoryRepository
                     .Query()
                     .FirstOrDefault(x => x.Name == c.Name);
+
                     if (V1 != null)
                     {
                         _categoryRepository.Remove(c);
@@ -216,6 +217,10 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
                         a.id = V1.Id;
                         _categoryRepository.Add(c);
                         _categoryRepository.SaveChanges();
+                    }
+                    else {
+                        c.Slug = a.areaname + "-" + V1.Id;
+
                     }
 
                 }
