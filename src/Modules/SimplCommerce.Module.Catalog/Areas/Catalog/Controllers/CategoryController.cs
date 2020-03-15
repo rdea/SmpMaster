@@ -12,6 +12,7 @@ using SimplCommerce.Infrastructure.Data;
 using SimplCommerce.Module.Catalog.Areas.Catalog.ViewModels;
 using SimplCommerce.Module.Catalog.Models;
 using SimplCommerce.Module.Catalog.Services;
+using SimplCommerce.Module.Core.Models;
 using SimplCommerce.Module.Core.Services;
 
 namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
@@ -27,6 +28,8 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
         private readonly IRepository<Brand> _brandRepository;
         private readonly IProductPricingService _productPricingService;
         private readonly IContentLocalizationService _contentLocalizationService;
+        private readonly IRepository<Entity> _entityRepository;
+        private readonly IRepositoryWithTypedId<EntityType, string> _entityTypeRepository;
 
         public CategoryController(IRepository<Product> productRepository,
             IMediaService mediaService,
@@ -34,7 +37,9 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
             IRepository<Brand> brandRepository,
             IProductPricingService productPricingService,
             IContentLocalizationService contentLocalizationService,
-            IConfiguration config)
+            IConfiguration config, 
+            IRepository<Entity> entityRepository,
+            IRepositoryWithTypedId<EntityType, string> entityTypeRepository)
         {
             _productRepository = productRepository;
             _mediaService = mediaService;
@@ -52,7 +57,6 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
             {
                 return Redirect("~/Error/FindNotFound");
             }
-
             var model = new ProductsByCategory
             {
                 CategoryId = category.Id,
@@ -66,35 +70,15 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
                 FilterOption = new FilterOption()
             };
 
-            var query = _productRepository
-                .Query()
-                .Where(x => x.Categories.Any(c => c.CategoryId == category.Id) && x.IsPublished && x.IsVisibleIndividually);
 
-            if (query.Count() == 0)
+            var productos = RecuperaArtículosCategoria(GetIP(), GetSession(), category);
+            if (productos.result.Count == 0 || productos is null)
             {
                 model.TotalProduct = 0;
                 return View(model);
             }
 
-            AppendFilterOptionsToModel(model, query);
-
-            if (searchOption.MinPrice.HasValue)
-            {
-                query = query.Where(x => x.Price >= searchOption.MinPrice.Value);
-            }
-
-            if (searchOption.MaxPrice.HasValue)
-            {
-                query = query.Where(x => x.Price <= searchOption.MaxPrice.Value);
-            }
-
-            var brands = searchOption.GetBrands().ToArray();
-            if (brands.Any())
-            {
-                query = query.Where(x => x.BrandId != null && brands.Contains(x.Brand.Slug));
-            }
-
-            model.TotalProduct = query.Count();
+            model.TotalProduct = productos.result.Count();
             var currentPageNum = searchOption.Page <= 0 ? 1 : searchOption.Page;
             var offset = (_pageSize * currentPageNum) - _pageSize;
             while (currentPageNum > 1 && offset >= model.TotalProduct)
@@ -103,29 +87,219 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
                 offset = (_pageSize * currentPageNum) - _pageSize;
             }
 
-            query = ApplySort(searchOption, query);
 
-            var products = query
-                .Include(x => x.ThumbnailImage)
-                .Skip(offset)
-                .Take(_pageSize)
-                .Select(x => ProductThumbnail.FromProduct(x))
-                .ToList();
-
-            foreach (var product in products)
+            foreach (var p in productos.result)
             {
-                product.Name = _contentLocalizationService.GetLocalizedProperty(nameof(Product), product.Id, nameof(product.Name), product.Name);
-                product.ThumbnailUrl = _mediaService.GetThumbnailUrl(product.ThumbnailImage);
-                product.CalculatedProductPrice = _productPricingService.CalculateProductPrice(product);
+                ProductThumbnail tm = new ProductThumbnail();
+                tm.Id = long.Parse(p.identifier);
+                tm.Name = p.description;
+                tm.ThumbnailUrl = p.imagelarge;
+                int r = 0;
+                _ = int.TryParse(p.stocks, out r);
+                tm.StockQuantity = r;
+                decimal pr = 0;
+                pr = decimal.Parse(p.pricewithtax);
+                tm.Price = pr;
+                tm.ReviewsCount = int.Parse(p.likeothers);
+                tm.IsAllowToOrder = true;
+                tm.Slug = tm.Name.Replace(" ", "-");
+                Core.Models.Media pti = new ProductThumbnail().ThumbnailImage;
+                tm.ThumbnailUrl = _mediaService.GetThumbnailUrl(pti);
+                tm.ThumbnailUrl = _mediaService.GetURL(p.imagelarge);
+
+                //tm.CalculatedProductPrice(p);
+                //tm.CalculatedProductPrice = _productPricingService.CalculateProductPrice((decimal.Parse(p.pricewithtax)));
+                tm.CalculatedProductPrice = _productPricingService.CalculateProductPrice(tm);
+                model.Products.Add(tm);
+                //añadimos a la tabla slug si no existe
+                var entity = _entityRepository
+                .Query()
+                .Include(x => x.EntityType)
+                .FirstOrDefault(x => x.Slug == tm.Slug);
+                if (entity == null)
+                {
+                    Entity en = new Entity();
+
+                    en.EntityId = (long)tm.Id;
+                    en.Name = tm.Name;
+                    en.Slug = tm.Slug + "-" + tm.Id;
+                    var enType = _entityTypeRepository.Query().FirstOrDefault(x => x.Id == "Product");
+                    en.EntityType = enType;
+
+                    //en.EntityType = (EntityType)enType;
+                    //en.EntityType = new EntityType("Product");
+                    //en.EntityType.AreaName = "Catalog";
+                    //en.EntityType.IsMenuable = false;
+                    //en.EntityType.RoutingController = "Product";
+                    //en.EntityType.RoutingAction = "ProductDetail";
+                    _entityRepository.Add(en);
+                    _entityRepository.SaveChanges();
+                }
             }
 
-            model.Products = products;
+
             model.CurrentSearchOption.PageSize = _pageSize;
             model.CurrentSearchOption.Page = currentPageNum;
-
             return View(model);
+            //var model = new SearchResult
+            //{
+            //    CurrentSearchOption = searchOption,
+            //    FilterOption = new FilterOption()
+            //};
+
+            //if (productos.result.Count == 0 || productos is null)
+            //{
+            //    model.TotalProduct = 0;
+            //    return View(model);
+            //}
+            ////AppendFilterOptionsToModel(model, query);
+
+            //model.TotalProduct = productos.result.Count();
+            //var currentPageNum = searchOption.Page <= 0 ? 1 : searchOption.Page;
+            //var offset = (_pageSize * currentPageNum) - _pageSize;
+            //while (currentPageNum > 1 && offset >= model.TotalProduct)
+            //{
+            //    currentPageNum--;
+            //    offset = (_pageSize * currentPageNum) - _pageSize;
+            //}
+
+
+            //foreach (var p in productos.result)
+            //{
+            //    ProductThumbnail tm = new ProductThumbnail();
+            //    tm.Id = long.Parse(p.identifier);
+            //    tm.Name = p.description;
+            //    tm.ThumbnailUrl = p.imagelarge;
+            //    int r = 0;
+            //    _ = int.TryParse(p.stocks, out r);
+            //    tm.StockQuantity = r;
+            //    decimal pr = 0;
+            //    pr = decimal.Parse(p.pricewithtax);
+            //    tm.Price = pr;
+            //    tm.ReviewsCount = int.Parse(p.likeothers);
+            //    tm.IsAllowToOrder = true;
+            //    tm.Slug = tm.Name.Replace(" ", "-");
+            //    Core.Models.Media pti = new ProductThumbnail().ThumbnailImage;
+            //    tm.ThumbnailUrl = _mediaService.GetThumbnailUrl(pti);
+            //    tm.ThumbnailUrl = _mediaService.GetURL(p.imagelarge);
+
+            //    //tm.CalculatedProductPrice(p);
+            //    //tm.CalculatedProductPrice = _productPricingService.CalculateProductPrice((decimal.Parse(p.pricewithtax)));
+            //    tm.CalculatedProductPrice = _productPricingService.CalculateProductPrice(tm);
+            //    model.Products.Add(tm);
+            //    //añadimos a la tabla slug si no existe
+            //    var entity = _entityRepository
+            //    .Query()
+            //    .Include(x => x.EntityType)
+            //    .FirstOrDefault(x => x.Slug == tm.Slug);
+            //    if (entity == null)
+            //    {
+            //        Entity en = new Entity();
+
+            //        en.EntityId = (long)tm.Id;
+            //        en.Name = tm.Name;
+            //        en.Slug = tm.Slug + "-" + tm.Id;
+            //        var enType = _entityTypeRepository.Query().FirstOrDefault(x => x.Id == "Product");
+            //        en.EntityType = enType;
+
+            //        //en.EntityType = (EntityType)enType;
+            //        //en.EntityType = new EntityType("Product");
+            //        //en.EntityType.AreaName = "Catalog";
+            //        //en.EntityType.IsMenuable = false;
+            //        //en.EntityType.RoutingController = "Product";
+            //        //en.EntityType.RoutingAction = "ProductDetail";
+            //        _entityRepository.Add(en);
+            //        _entityRepository.SaveChanges();
+            //    }
+            //}
+
+
+            //model.CurrentSearchOption.PageSize = _pageSize;
+            //model.CurrentSearchOption.Page = currentPageNum;
+
+            //return View(model);
+
+
+            ////codigo origen
+            //var category = _categoryRepository.Query().FirstOrDefault(x => x.Id == id);
+            //if (category == null)
+            //{
+            //    return Redirect("~/Error/FindNotFound");
+            //}
+
+            //var model = new ProductsByCategory
+            //{
+            //    CategoryId = category.Id,
+            //    ParentCategorId = category.ParentId,
+            //    CategoryName = _contentLocalizationService.GetLocalizedProperty(category, nameof(category.Name), category.Name),
+            //    CategorySlug = category.Slug,
+            //    CategoryMetaTitle = category.MetaTitle,
+            //    CategoryMetaKeywords = category.MetaKeywords,
+            //    CategoryMetaDescription = category.MetaDescription,
+            //    CurrentSearchOption = searchOption,
+            //    FilterOption = new FilterOption()
+            //};
+
+            //var query = _productRepository
+            //    .Query()
+            //    .Where(x => x.Categories.Any(c => c.CategoryId == category.Id) && x.IsPublished && x.IsVisibleIndividually);
+
+            //if (query.Count() == 0)
+            //{
+            //    model.TotalProduct = 0;
+            //    return View(model);
+            //}
+
+            //AppendFilterOptionsToModel(model, query);
+
+            //if (searchOption.MinPrice.HasValue)
+            //{
+            //    query = query.Where(x => x.Price >= searchOption.MinPrice.Value);
+            //}
+
+            //if (searchOption.MaxPrice.HasValue)
+            //{
+            //    query = query.Where(x => x.Price <= searchOption.MaxPrice.Value);
+            //}
+
+            //var brands = searchOption.GetBrands().ToArray();
+            //if (brands.Any())
+            //{
+            //    query = query.Where(x => x.BrandId != null && brands.Contains(x.Brand.Slug));
+            //}
+
+            //model.TotalProduct = query.Count();
+            //var currentPageNum = searchOption.Page <= 0 ? 1 : searchOption.Page;
+            //var offset = (_pageSize * currentPageNum) - _pageSize;
+            //while (currentPageNum > 1 && offset >= model.TotalProduct)
+            //{
+            //    currentPageNum--;
+            //    offset = (_pageSize * currentPageNum) - _pageSize;
+            //}
+
+            //query = ApplySort(searchOption, query);
+
+            //var products = query
+            //    .Include(x => x.ThumbnailImage)
+            //    .Skip(offset)
+            //    .Take(_pageSize)
+            //    .Select(x => ProductThumbnail.FromProduct(x))
+            //    .ToList();
+
+            //foreach (var product in products)
+            //{
+            //    product.Name = _contentLocalizationService.GetLocalizedProperty(nameof(Product), product.Id, nameof(product.Name), product.Name);
+            //    product.ThumbnailUrl = _mediaService.GetThumbnailUrl(product.ThumbnailImage);
+            //    product.CalculatedProductPrice = _productPricingService.CalculateProductPrice(product);
+            //}
+
+            //model.Products = products;
+            //model.CurrentSearchOption.PageSize = _pageSize;
+            //model.CurrentSearchOption.Page = currentPageNum;
+
+            //return View(model);
         }
-       
+
 
         private static IQueryable<Product> ApplySort(SearchOption searchOption, IQueryable<Product> query)
         {
@@ -159,7 +333,7 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
                     Count = g.Count()
                 }).ToList();
         }
-        public DataCollection<producto> RecuperaArtículosCategoria(string laip, string _sesionToken, string cadena)
+        public DataCollection<producto> RecuperaArtículosCategoria(string laip, string _sesionToken, Category categoria)
         {
             var result = new DataCollection<producto>();
 
@@ -180,10 +354,20 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
 
 
 
-            string statement = @"[{""statementv1"":[{""field"":""DESCRIPTION"",""operator"":""like"",""fieldliteral"":""%";
-            statement += cadena;
-            statement += @"%"",""type"":""text"",""connector"":""""}]}]";
+            //string statement = @"[{""statementv1"":[{""field"":""DESCRIPTION"",""operator"":""like"",""fieldliteral"":""%";
+            //statement += categoria.Name;
+            //statement += @"%"",""type"":""text"",""connector"":""""}]}]";
 
+            string statement = @"[{""statementv1"":[{""field"":""DIVISION"",""operator"":""="",""fieldliteral"":""" + categoria.Division;
+                statement += @""",""type"":""numeric"",""connector"":""and""},";
+            statement += @"{""field"":""SECTION"",""operator"":""="",""fieldliteral"":""" + categoria.Section;
+            //statement  += @""",""type"":""numeric"",""connector"":""and""},";
+            //statement += @"{""field"":""SUBSECTION"",""operator"":""="",""fieldliteral"":""" + categoria.Subsection;
+            //statement += @""",""type"":""numeric"",""connector"":""and""},";
+            //statement += @"{""field"":""FAMILY"",""operator"":""="",""fieldliteral"":""" + categoria.Family;
+            //statement += @""",""type"":""numeric"",""connector"":""and""},";
+            //statement += @"{""field"":""SUBFAMILY"",""operator"":""="",""fieldliteral"":""" + categoria.Subfamily;
+            statement += @""",""type"":""numeric"",""connector"":""""}]}]";
             statement = System.Convert.ToBase64String(Encoding.Default.GetBytes(statement));
             //statement = @"W3sic3RhdGVtZW50djEiOlt7ImZpZWxkIjoiREVTQ1JJUFRJT04iLCJvcGVyYXRvciI6Imxpa2UiLCJmaWVsZGxpdGVyYWwiOiIlbWFydGklIiwidHlwZSI6InRleHQiLCJjb25uZWN0b3IiOiJhbmQifSx7ImZpZWxkIjoiUFJJQ0VXSVRIVEFYIiwib3BlcmF0b3IiOiI+PSIsImZpZWxkbGl0ZXJhbCI6IicwLjAxJyIsInR5cGUiOiJudW1lcmljIiwiY29ubmVjdG9yIjoiYW5kIn0seyJmaWVsZCI6IlBSSUNFV0lUSFRBWCIsIm9wZXJhdG9yIjoiPD0iLCJmaWVsZGxpdGVyYWwiOiInMTAwMCciLCJ0eXBlIjoibnVtZXJpYyIsImNvbm5lY3RvciI6IiJ9XX1d";
             // statement = @"W3sic3RhdGVtZW50djEiOlt7ImZpZWxkIjoiREVTQ1JJUFRJT04iLCJvcGVyYXRvciI6Imxpa2UiLCJmaWVsZGxpdGVyYWwiOiIlJSIsInR5cGUiOiJ0ZXh0IiwiY29ubmVjdG9yIjoiYW5kIn0seyJmaWVsZCI6IlBSSUNFV0lUSFRBWCIsIm9wZXJhdG9yIjoiPj0iLCJmaWVsZGxpdGVyYWwiOiInMC4wMSciLCJ0eXBlIjoibnVtZXJpYyIsImNvbm5lY3RvciI6ImFuZCJ9LHsiZmllbGQiOiJQUklDRVdJVEhUQVgiLCJvcGVyYXRvciI6Ijw9IiwiZmllbGRsaXRlcmFsIjoiJzEwMDAnIiwidHlwZSI6Im51bWVyaWMiLCJjb25uZWN0b3IiOiIifV19XQ==";

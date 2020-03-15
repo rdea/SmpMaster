@@ -86,8 +86,8 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
             var categoryMenuItem = new CategoryMenuItem
             {
                 Id = long.Parse(category.division),
-                Name = category.areaname
-                //Slug = category.areaname + "-" + category.id;
+                Name = category.areaname,
+                Slug = category.slug
         };
             
             var childCategories = category.hijos;
@@ -194,37 +194,38 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
                 
                 c.Division = int.Parse(a.division);
                 c.Name = a.areaname;
+                c.MetaTitle = c.Name;
                 c.Description = a.areaname;
+                c.MetaDescription = c.Description;
                 c.Family = int.Parse(a.family);
                 c.Subfamily = int.Parse(a.subfamily);
                 c.Subsection = int.Parse(a.subsection);
                 c.Section = int.Parse(a.section);
-
+                c.Slug = c.Name + c.Division + c.Family + c.Subfamily + c.Section + c.Subsection;
                 var V = _categoryRepository
                     .Query()
-                    .FirstOrDefault(x => x.Name == c.Name);
+                    .FirstOrDefault(x => x.Division == c.Division && x.Family==c.Family && x.Subfamily == c.Subfamily && x.Subsection == c.Subsection && x.Section == c.Section);
                 if (V == null)
                 {
-                    var V1 = _categoryRepository
-                    .Query()
-                    .FirstOrDefault(x => x.Name == c.Name);
+                    _categoryRepository.Add(c);
+                    _categoryRepository.SaveChanges();
 
-                    if (V1 != null)
-                    {
-                        _categoryRepository.Remove(c);
+                    //_categoryRepository.Remove(c);
+                      //  _categoryRepository.SaveChanges();
+                        var V1 = _categoryRepository
+                        .Query()
+                        .FirstOrDefault(x => x.Division == c.Division && x.Family == c.Family && x.Subfamily == c.Subfamily && x.Subsection == c.Subsection && x.Section == c.Section);
+                        c.Slug = c.Name + "-" + V1.Id;
+                      //  a.id = V1.Id;
+                    //_categoryRepository.Remove(c);
+                    //_categoryRepository.SaveChanges();
+                    //_categoryRepository.Add(c);
                         _categoryRepository.SaveChanges();
-                        c.Slug = a.areaname + "-" + V1.Id;
-                        a.id = V1.Id;
-                        _categoryRepository.Add(c);
-                        _categoryRepository.SaveChanges();
-                    }
-                    else {
-                        c.Slug = a.areaname + "-" + V1.Id;
-
-                    }
-
                 }
-                
+                else
+                {
+                    c.Slug = a.areaname + "-" + V.Id;
+                }
 
                 var entity = _entityRepository
                 .Query()
@@ -236,11 +237,11 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
 
                     en.EntityId = (long)c.Id;
                     en.Name = c.Description;
-                    en.Slug = c.Slug + "-" + c.Id;
+                    en.Slug = c.Slug;// + "-" + c.Id;
                     var enType = _entityTypeRepository.Query().FirstOrDefault(x => x.Id == "Category");
                     en.EntityType = enType;
                     a.slug = en.Slug;
-                  //  a.id = c.Id;
+                    //  a.id = c.Id;
                     //en.EntityType = (EntityType)enType;
                     //en.EntityType = new EntityType("Product");
                     //en.EntityType.AreaName = "Catalog";
@@ -249,6 +250,9 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
                     //en.EntityType.RoutingAction = "ProductDetail";
                     _entityRepository.Add(en);
                     _entityRepository.SaveChanges();
+                }
+                else {
+                    a.slug = entity.Slug;
                 }
                 if ((int.Parse(a.division.ToString()) > 0 && int.Parse(a.section.ToString()) == 0 && int.Parse(a.subsection.ToString()) == 0) && int.Parse(a.family.ToString()) == 0 && int.Parse(a.subfamily.ToString()) == 0)
                 {
@@ -276,7 +280,6 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
                         }
                         }
                     AMenud.Add(a);
-                    
                                 }
                             }
 
