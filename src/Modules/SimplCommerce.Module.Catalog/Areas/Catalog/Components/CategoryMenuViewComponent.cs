@@ -225,6 +225,7 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
                 else
                 {
                     c.Slug = a.areaname + "-" + V.Id;
+                    
                 }
 
                 var entity = _entityRepository
@@ -234,8 +235,14 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
                 if (entity == null)
                 {
                     Entity en = new Entity();
-
-                    en.EntityId = (long)c.Id;
+                    if (c.Id == 0 || c.Id == null)
+                    {
+                        en.EntityId = V.Id;
+                    }
+                    else
+                    {
+                        en.EntityId = (long)c.Id;
+                    }
                     en.Name = c.Description;
                     en.Slug = c.Slug;// + "-" + c.Id;
                     var enType = _entityTypeRepository.Query().FirstOrDefault(x => x.Id == "Category");

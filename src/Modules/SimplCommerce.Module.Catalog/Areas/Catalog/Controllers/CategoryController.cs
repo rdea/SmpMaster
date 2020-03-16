@@ -47,6 +47,8 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
             _brandRepository = brandRepository;
             _productPricingService = productPricingService;
             _contentLocalizationService = contentLocalizationService;
+            _entityRepository = entityRepository;
+            _entityTypeRepository = entityTypeRepository;
             _pageSize = config.GetValue<int>("Catalog.ProductPageSize");
         }
 
@@ -102,7 +104,7 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
                 tm.Price = pr;
                 tm.ReviewsCount = int.Parse(p.likeothers);
                 tm.IsAllowToOrder = true;
-                tm.Slug = tm.Name.Replace(" ", "-");
+                tm.Slug = tm.Name.Replace(" ", "-")+ "-" + tm.Id;
                 Core.Models.Media pti = new ProductThumbnail().ThumbnailImage;
                 tm.ThumbnailUrl = _mediaService.GetThumbnailUrl(pti);
                 tm.ThumbnailUrl = _mediaService.GetURL(p.imagelarge);
@@ -114,7 +116,7 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
                 //añadimos a la tabla slug si no existe
                 var entity = _entityRepository
                 .Query()
-                .Include(x => x.EntityType)
+               .Include(x => x.EntityType)
                 .FirstOrDefault(x => x.Slug == tm.Slug);
                 if (entity == null)
                 {
@@ -122,7 +124,7 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
 
                     en.EntityId = (long)tm.Id;
                     en.Name = tm.Name;
-                    en.Slug = tm.Slug + "-" + tm.Id;
+                    en.Slug = tm.Slug;// + "-" + tm.Id;
                     var enType = _entityTypeRepository.Query().FirstOrDefault(x => x.Id == "Product");
                     en.EntityType = enType;
 

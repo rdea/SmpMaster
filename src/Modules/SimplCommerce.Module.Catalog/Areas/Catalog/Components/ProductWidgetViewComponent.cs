@@ -151,7 +151,7 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
                 tm.Price = pr;
                 tm.ReviewsCount = int.Parse(p.likeothers);
                 tm.IsAllowToOrder = true;
-                tm.Slug =tm.Name.Replace(" ", "-");
+                tm.Slug =tm.Name.Replace(" ", "-") + "-"+ tm.Id;
                 Core.Models.Media pti = new ProductThumbnail().ThumbnailImage;
                 tm.ThumbnailUrl = _mediaService.GetThumbnailUrl(pti);
                 tm.ThumbnailUrl = _mediaService.GetURL(p.imagelarge);
@@ -171,7 +171,7 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
                     
                     en.EntityId = (long)tm.Id;
                     en.Name = tm.Name;
-                    en.Slug = tm.Slug+"-"+tm.Id;
+                    en.Slug = tm.Slug;
                     var enType = _entityTypeRepository.Query().FirstOrDefault(x => x.Id == "Product");
                     en.EntityType = enType;
 
