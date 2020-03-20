@@ -281,13 +281,13 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
         }
         public string GetSession()
         {
-            string se = HttpContext.Session.GetString("id");
+            string se = HttpContext.Session.GetString("idtk");
             if (se == null)
             {
                 se = comunes.GetToken(GetIP());
-                HttpContext.Session.Set("id", System.Text.Encoding.UTF8.GetBytes(se));
+                HttpContext.Session.SetString("idtk", se);
             }
-            return HttpContext.Session.GetString("id");
+            return HttpContext.Session.GetString("idtk");
         }
         public DataCollectionSingle<producto> RecuperaArtículo(string laip, string _sesionToken, long identificador)
         {

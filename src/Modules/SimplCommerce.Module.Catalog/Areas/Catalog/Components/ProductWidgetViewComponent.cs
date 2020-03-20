@@ -74,13 +74,13 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
 
         public string GetSession()
         {
-            string se = HttpContext.Session.GetString("id");
+            string se = HttpContext.Session.GetString("idtk");
             if (se == null)
             {
-                se = GetToken(GetIP());
-                HttpContext.Session.Set("id", System.Text.Encoding.UTF8.GetBytes(se));
+                se = comunes.GetToken(GetIP());
+                HttpContext.Session.SetString("idtk", se);
             }
-            return HttpContext.Session.GetString("id");
+            return HttpContext.Session.GetString("idtk");
         }
         public string GetIP()
         {

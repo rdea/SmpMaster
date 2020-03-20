@@ -41,7 +41,16 @@ namespace SimplCommerce.WebHost
             GlobalConfiguration.WebRootPath = _hostingEnvironment.WebRootPath;
             GlobalConfiguration.ContentRootPath = _hostingEnvironment.ContentRootPath;
             services.AddModules(_hostingEnvironment.ContentRootPath);
-            services.AddSession();
+            services.AddDistributedMemoryCache();
+            
+            //services.AddSession();
+            services.AddSession(options =>
+            {
+                options.Cookie.Name = "id";
+                options.IdleTimeout = TimeSpan.FromMinutes(5);
+                options.Cookie.HttpOnly = true;
+                options.Cookie.IsEssential = true;
+            });
             services.Configure<CookiePolicyOptions>(options =>
             {
                 // This lambda determines whether user consent for non-essential cookies is needed for a given request.
@@ -105,6 +114,8 @@ namespace SimplCommerce.WebHost
                 );
                 app.UseHsts();
             }
+            //app.UseHttpContextItemsMiddleware();
+            app.UseCookiePolicy();
             app.UseSession();
 
             app.UseWhen(
