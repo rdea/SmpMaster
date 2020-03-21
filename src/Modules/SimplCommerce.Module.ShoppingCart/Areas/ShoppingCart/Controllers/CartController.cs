@@ -104,19 +104,22 @@ namespace SimplCommerce.Module.ShoppingCart.Areas.ShoppingCart.Controllers
         {
             //recuperamos los datos de Previsualizacion del carrito.
             var carrito = RecuperaTotalCarrito(GetIP(), GetSession());
-            var currentUser = await _workContext.GetCurrentUser();
-            var cart = await _cartService.GetActiveCartDetails(currentUser.Id);
+           // var currentUser = await _workContext.GetCurrentUser();
+          //  var cart = await _cartService.GetActiveCartDetails(currentUser.Id);
 
             var model = new AddToCartResult(_currencyService)
             {
-                CartItemCount = cart.Items.Count,
-                CartAmount = cart.SubTotal
+                CartItemCount = int.Parse(carrito.totallines),
+                CartAmount = decimal.Parse(carrito.totaltopay)
             };
             //tenemos que recuperar los datos de la ultima linea añadida
-            //var articulo = RecuperaArtículo(GetIP(), GetSession(), productId);
-            //model.ProductName = addedProduct.ProductName;
-            //model.ProductImage = addedProduct.ProductImage;
-            //model.ProductPrice = addedProduct.ProductPrice;
+            var articulo = RecuperaArtículo(GetIP(), GetSession(), productId);
+            model.ProductName = articulo.result.description;
+            model.ProductImage = articulo.result.imagesmall;
+            model.ProductPrice = decimal.Parse(articulo.result.pricewithtax);
+            //ponemos 1 pode defecto mientras no completamos el siguiente paso
+            model.Quantity = 1;
+            //leemos la cantidad de la ultima linea
             //model.Quantity = addedProduct.Quantity;
             // codigo origen
             //var addedProduct = cart.Items.First(x => x.ProductId == productId);
@@ -369,9 +372,9 @@ namespace SimplCommerce.Module.ShoppingCart.Areas.ShoppingCart.Controllers
 
             return result;
         }
-        public DataCollectionSingle<Basketlinestotal> RecuperaTotalCarrito(string laip, string _sesionToken)
+        public BasketlinestotalRecibe RecuperaTotalCarrito(string laip, string _sesionToken)
         {
-            var result = new DataCollectionSingle<Basketlinestotal>();
+            var result = new BasketlinestotalRecibe();
 
             //string de url principal
             string urlPath = "https://riews.reinfoempresa.com:8443";
@@ -401,7 +404,7 @@ namespace SimplCommerce.Module.ShoppingCart.Areas.ShoppingCart.Controllers
                 var result2 = streamReader.ReadToEnd();
                 //traducimos el resultado
                 // result = JsonSerializer.Deserialize<DataCollectionSingle<producto>>(result2);
-                result = JsonConvert.DeserializeObject<DataCollectionSingle<Basketlinestotal>>(result2);
+                result = JsonConvert.DeserializeObject<BasketlinestotalRecibe>(result2);
             }
             //
             //if (_area == null)
