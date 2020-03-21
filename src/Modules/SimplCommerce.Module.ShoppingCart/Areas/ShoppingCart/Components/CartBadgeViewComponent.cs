@@ -39,7 +39,7 @@ namespace SimplCommerce.Module.ShoppingCart.Areas.ShoppingCart.Components
 
             var carrito = RecuperaTotalCarrito(GetIP(), GetSession());
 
-            return View(this.GetViewPath(), carrito.totallines);
+            return View(this.GetViewPath(), int.Parse(carrito.totallines));
 
         }
 
