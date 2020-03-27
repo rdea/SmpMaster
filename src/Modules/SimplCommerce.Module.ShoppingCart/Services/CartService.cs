@@ -109,6 +109,7 @@ namespace SimplCommerce.Module.ShoppingCart.Services
         // TODO separate getting product thumbnail, varation options from here
         public async Task<CartVm> GetActiveCartDetails(long customerId, long createdById)
         {
+            // datos del carrito se cargan aqui
             var cart = await GetActiveCart(customerId, createdById);
             if (cart == null)
             {

@@ -1,6 +1,8 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Threading.Tasks;
 using CRM.Models;
 using Microsoft.AspNetCore.Http;
@@ -140,10 +142,19 @@ namespace SimplCommerce.Module.ShoppingCart.Areas.ShoppingCart.Controllers
         [HttpGet("cart/list")]
         public async Task<IActionResult> List()
         {
-            var currentUser = await _workContext.GetCurrentUser();
-            var cart = await _cartService.GetActiveCartDetails(currentUser.Id);
+            //aqui carga los datos de carrito   
+            try
+            {
+                var carrito = DataCarrito();
+                return Json(carrito);
+            }
+            catch (Exception e)
+            {
+                var currentUser = await _workContext.GetCurrentUser();
+                var cart = await _cartService.GetActiveCartDetails(currentUser.Id);
+                return Json(cart);
+            }
 
-            return Json(cart);
         }
 
         [HttpPost("cart/update-item-quantity")]
@@ -416,6 +427,243 @@ namespace SimplCommerce.Module.ShoppingCart.Areas.ShoppingCart.Controllers
 
             return result;
         }
+        public void GetStructCarrito(string laip, string _sesionToken)
+        {
+            var result = new DataCollectionSingle<producto>();
+
+            //string de url principal
+            string urlPath = "https://riews.reinfoempresa.com:8443";
+
+            //string de la url del método de llamada
+            //https://riews.reinfoempresa.com:8443/RIEWS/webapi/PrivateServices/articles1
+            string request2 = urlPath + "/RIEWS/webapi/PrivateServices/basketlineGetStructureW";
+            //creamos un webRequest con el tipo de método.
+            WebRequest webRequest = WebRequest.Create(request2);
+            //definimos el tipo de webrequest al que llamaremos
+            webRequest.Method = "POST";
+            //definimos content\
+            webRequest.ContentType = "application/json; charset=utf-8";
+            //cargamos los datos a enviar
+            using (var streamWriter = new StreamWriter(webRequest.GetRequestStream()))
+            {
+                //string json = "{\"token\":\"" + token + "\",\"ipbase64\":\"" + laip +"}";
+                string json = "{\"token\":\"" + _sesionToken + "\",\"ipbase64\":\"" + laip + "\"}";
+                streamWriter.Write(json.ToString());
+                //"  "
+            }
+            //obtenemos la respuesta del servidor
+            var httpResponse = (HttpWebResponse)webRequest.GetResponse();
+            //leemos la respuesta y la tratamos
+            using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
+            {
+                var result2 = streamReader.ReadToEnd();
+                //traducimos el resultado
+                result = JsonConvert.DeserializeObject<DataCollectionSingle<producto>>(result2);
+                //result = JsonConvert.DeserializeObject<BasketlinestotalRecibe>(result2);
+            }
+            //
+            //if (_area == null)
+            //{
+            //    _area = new resultList();
+            //    _area.result = new List<result>();
+            //    _area.result[0].areaname = "vacia";
+            //}
+
+          
+        }
+
+        public DataCollectionSingle<producto> RecuperaLineasCarrito(string laip, string _sesionToken, string linea)
+        {
+            var result = new DataCollectionSingle<producto>();
+
+            //string de url principal
+            string urlPath = "https://riews.reinfoempresa.com:8443";
+
+            //string de la url del método de llamada
+            //https://riews.reinfoempresa.com:8443/RIEWS/webapi/PrivateServices/articles1
+            string request2 = urlPath + "/RIEWS/webapi/PrivateServices/basketline1W";
+            //creamos un webRequest con el tipo de método.
+            WebRequest webRequest = WebRequest.Create(request2);
+            //definimos el tipo de webrequest al que llamaremos
+            webRequest.Method = "POST";
+            //definimos content\
+            webRequest.ContentType = "application/json; charset=utf-8";
+            //cargamos los datos a enviar
+            using (var streamWriter = new StreamWriter(webRequest.GetRequestStream()))
+            {
+                //string json = "{\"token\":\"" + token + "\",\"ipbase64\":\"" + laip +"}";
+                string json = "{\"token\":\"" + _sesionToken + "\",\"ipbase64\":\"" + laip + "\",\"line\":\""+linea+"\"}";
+                streamWriter.Write(json.ToString());
+                //"  "
+            }
+            //obtenemos la respuesta del servidor
+            var httpResponse = (HttpWebResponse)webRequest.GetResponse();
+            //leemos la respuesta y la tratamos
+            using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
+            {
+                var result2 = streamReader.ReadToEnd();
+                //traducimos el resultado
+                result = JsonConvert.DeserializeObject<DataCollectionSingle<producto>>(result2);
+                //result = JsonConvert.DeserializeObject<BasketlinestotalRecibe>(result2);
+            }
+            //
+            //if (_area == null)
+            //{
+            //    _area = new resultList();
+            //    _area.result = new List<result>();
+            //    _area.result[0].areaname = "vacia";
+            //}
+
+            return result;
+        }
+        public DataCollection<CartLine> RecuperatodasLineasCarrito(string laip, string _sesionToken)
+        {
+            var result = new DataCollection<CartLine>();
+
+            //string de url principal
+            string urlPath = "https://riews.reinfoempresa.com:8443";
+            // string filtro = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("'@[{"field":"REFERENCIA","operator":" >= ","fieldliteral":"0","type":"text","connector":""}]'"));
+            string statement = @"[{""statementv1"":[{""field"":""LINE"",""operator"":"">="",""fieldliteral"":""0"",""type"":""text"",""connector"":""""}]}]";
+           // string statement = @"[]";
+            statement = System.Convert.ToBase64String(Encoding.Default.GetBytes(statement));
+            string order = System.Convert.ToBase64String(System.Text.Encoding.Default.GetBytes("DESCRIPTION DESC"));
+
+            //string de la url del método de llamada
+            //https://riews.reinfoempresa.com:8443/RIEWS/webapi/PrivateServices/articles1
+            string request2 = urlPath + "/RIEWS/webapi/PrivateServices/basketlines5W";
+            //creamos un webRequest con el tipo de método.
+            WebRequest webRequest = WebRequest.Create(request2);
+            //definimos el tipo de webrequest al que llamaremos
+            webRequest.Method = "POST";
+            //definimos content\
+            webRequest.ContentType = "application/json; charset=utf-8";
+            //cargamos los datos a enviar
+            using (var streamWriter = new StreamWriter(webRequest.GetRequestStream()))
+            {
+                //string json = "{\"token\":\"" + token + "\",\"ipbase64\":\"" + laip +"}";
+                string json = "{\"token\":\"" + _sesionToken + "\",\"ipbase64\":\"" + laip + "\",\"orderby\":\"" + order + "\",\"initrec\":\"" + 1 + "\",\"maxrecs\":\"" + 9 + "\",\"filter\":\"" + statement + "\"}";
+                streamWriter.Write(json.ToString());
+                //"  "
+            }
+            //obtenemos la respuesta del servidor
+            var httpResponse = (HttpWebResponse)webRequest.GetResponse();
+            //leemos la respuesta y la tratamos
+            using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
+            {
+                var result2 = streamReader.ReadToEnd();
+                //traducimos el resultado
+                result = JsonConvert.DeserializeObject<DataCollection<CartLine>>(result2);
+                //result = JsonConvert.DeserializeObject<BasketlinestotalRecibe>(result2);
+            }
+            //
+            //if (_area == null)
+            //{
+            //    _area = new resultList();
+            //    _area.result = new List<result>();
+            //    _area.result[0].areaname = "vacia";
+            //}
+
+            return result;
+        }
+
+        public CartVm DataCarrito() {
+            //GetStructCarrito(GetIP(), GetSession());
+            var blc = RecuperaTotalCarrito(GetIP(), GetSession());
+            var todas = RecuperatodasLineasCarrito(GetIP(), GetSession());
+            Random r = new Random();
+            
+            // int totalLineas = int.Parse(blc.totallines);
+            var cartVm = new CartVm(_currencyService)
+            {
+                Id = r.Next(0, 60000),//int.Parse(DateTime.Now.ToString()),
+                IsProductPriceIncludeTax = true
+                //TaxAmount = cart.TaxAmount,
+                //ShippingAmount = cart.ShippingAmount,
+                //OrderNote = cart.OrderNote
+            };
+            
+            foreach (CartLine ln in todas.result)
+            {
+                CartItemVm civ = new CartItemVm(_currencyService);
+                civ.Id = long.Parse(ln.line);
+                civ.ProductId = long.Parse(ln.identifier);
+                var arti = RecuperaArtículo(GetIP(), GetSession(), civ.ProductId);
+                int sta=0;
+                _ = int.TryParse(arti.result.stocks, out sta);
+                civ.ProductStockQuantity = decimal.ToInt32(decimal.Parse(arti.result.stocks));
+                civ.ProductName = ln.description;
+                civ.ProductPrice = decimal.Parse(ln.pricewithtax);
+                civ.IsProductAvailabeToOrder = true;
+                civ.ProductStockTrackingIsEnabled = false;
+                //Core.Models.Media pti = new ProductThumbnail().;
+                civ.ProductImage = ln.imagesmall;
+                civ.Quantity = decimal.ToInt32(decimal.Parse(ln.quantity));
+
+
+                //        Id = x.Id,
+                //        ProductId = x.ProductId,
+                //        ProductName = x.Product.Name,
+                //        ProductPrice = x.Product.Price,
+                //        ProductStockQuantity = x.Product.StockQuantity,
+                //        ProductStockTrackingIsEnabled = x.Product.StockTrackingIsEnabled,
+                //        IsProductAvailabeToOrder = x.Product.IsAllowToOrder && x.Product.IsPublished && !x.Product.IsDeleted,
+                //        ProductImage = _mediaService.GetThumbnailUrl(x.Product.ThumbnailImage),
+                //        Quantity = x.Quantity,
+
+                cartVm.Items.Add(civ);
+            }
+            cartVm.SubTotal = decimal.Parse(blc.totalwithtax);
+            cartVm.Discount = 0;
+            return cartVm;
+            //Datos esperados, los mismos que devuelve await _cartService.GetActiveCartDetails(currentUser.Id);
+            //var cartVm = new CartVm(_currencyService)
+            //{
+            //    Id = cart.Id,
+            //    CouponCode = cart.CouponCode,
+            //    IsProductPriceIncludeTax = cart.IsProductPriceIncludeTax,
+            //    TaxAmount = cart.TaxAmount,
+            //    ShippingAmount = cart.ShippingAmount,
+            //    OrderNote = cart.OrderNote
+            //};
+
+            //cartVm.Items = _cartItemRepository
+            //    .Query()
+            //    .Include(x => x.Product).ThenInclude(p => p.ThumbnailImage)
+            //    .Include(x => x.Product).ThenInclude(p => p.OptionCombinations).ThenInclude(o => o.Option)
+            //    .Where(x => x.CartId == cart.Id).ToList()
+            //    .Select(x => new CartItemVm(_currencyService)
+            //    {
+            //        Id = x.Id,
+            //        ProductId = x.ProductId,
+            //        ProductName = x.Product.Name,
+            //        ProductPrice = x.Product.Price,
+            //        ProductStockQuantity = x.Product.StockQuantity,
+            //        ProductStockTrackingIsEnabled = x.Product.StockTrackingIsEnabled,
+            //        IsProductAvailabeToOrder = x.Product.IsAllowToOrder && x.Product.IsPublished && !x.Product.IsDeleted,
+            //        ProductImage = _mediaService.GetThumbnailUrl(x.Product.ThumbnailImage),
+            //        Quantity = x.Quantity,
+            //        VariationOptions = CartItemVm.GetVariationOption(x.Product)
+            //    }).ToList();
+
+            //cartVm.SubTotal = cartVm.Items.Sum(x => x.Quantity * x.ProductPrice);
+            //if (!string.IsNullOrWhiteSpace(cartVm.CouponCode))
+            //{
+            //    var cartInfoForCoupon = new CartInfoForCoupon
+            //    {
+            //        Items = cartVm.Items.Select(x => new CartItemForCoupon { ProductId = x.ProductId, Quantity = x.Quantity }).ToList()
+            //    };
+            //    var couponValidationResult = await _couponService.Validate(customerId, cartVm.CouponCode, cartInfoForCoupon);
+            //    if (couponValidationResult.Succeeded)
+            //    {
+            //        cartVm.Discount = couponValidationResult.DiscountAmount;
+            //    }
+            //    else
+            //    {
+            //        cartVm.CouponValidationErrorMessage = couponValidationResult.ErrorMessage;
+            //    }
+            //}
+        }
+
 
     }
 }
