@@ -1,11 +1,17 @@
-﻿using System.Linq;
+﻿using System.IO;
+using System.Linq;
+using System.Net;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using CRM.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using SimplCommerce.Module.Core.Areas.Core.ViewModels.Account;
 using SimplCommerce.Module.Core.Models;
 using SimplCommerce.Module.Core.Services;
@@ -57,6 +63,11 @@ namespace SimplCommerce.Module.Core.Areas.Core.Controllers
         public async Task<IActionResult> Login(LoginViewModel model, string returnUrl = null)
         {
             ViewData["ReturnUrl"] = returnUrl;
+            var result2 = LoginSistema(GetIP(), model.Email, model.Password);
+            if (result2.status == "OK")
+            {
+                SetSession(result2.activeToken);
+            }
             if (ModelState.IsValid)
             {
                 // This doesn't count login failures towards account lockout
@@ -85,6 +96,138 @@ namespace SimplCommerce.Module.Core.Areas.Core.Controllers
 
             // If we got this far, something failed, redisplay form
             return View(model);
+        }
+        public string GetSession()
+        {
+            string se = HttpContext.Session.GetString("idtk");
+            if (se == null)
+            {
+                se = comunes.GetToken(GetIP());
+                HttpContext.Session.SetString("idtk", se);
+            }
+            return HttpContext.Session.GetString("idtk");
+        }
+        public void SetSession(string se)
+        {
+            HttpContext.Session.SetString("idtk", se);
+        }
+        public string GetIP()
+        {
+            return System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(HttpContext.Features.Get<IHttpConnectionFeature>()?.RemoteIpAddress?.ToString()));
+        }
+
+
+        public sesion LoginSistema(string laip, string username, string pass)
+        {
+            var result = new sesion();
+
+            //resultList _area;
+            // string token = GetToken(laip).activeToken;
+            //string de url principal
+            string urlPath = "https://riews.reinfoempresa.com:8443";
+            string SecretKey = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJSZWN1cnNvcyBJbmZvcm3DoXRpY29zIEVtcHJlc2FyaWFsZXMsIFMuTC4iLCJpYXQiOjE1Nzc5NTgzNjYsImV4cCI6MTYwOTU4MDc2NywibmJmIjoxNTc3OTU4MzY2LCJpc3MiOiJhZHJpYW4iLCJlbnQiOiI0IiwiaW5zIjoiMSIsInVzYyI6IjMiLCJzbnUiOiI5OTk5LTg4ODgtMTEiLCJpcHMiOiJOVEV1TnpjdU1UTTNMakU0Tnc9PSIsImV4ZSI6IjExLjAuNSsxMC1wb3N0LVVidW50dS0wdWJ1bnR1MS4xMTguMDQiLCJsYW4iOiJzcGEiLCJqdGkiOiIwNTY0YzlmZS02NGI2LTRiNzAtYWZiZS04YmZhMDk1Y2U3NjkifQ.kkjBAlvDdNQrWC_8DCp5pEbMDBdHSBpRsmEZEKUm16bwn_45cktl3eudhOp7OxptqwgAt19prQowdKL3W3Zenw";
+
+            //string de la url del método de llamada
+            //https://riews.reinfoempresa.com:8443/RIEWS/webapi/PrivateServices/articles1
+            string request2 = urlPath + "/RIEWS/webapi/PrivateServices/authenticationLogInW";
+            string miuser = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(username));
+            string mipass = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(pass));
+            //creamos un webRequest con el tipo de método.
+            WebRequest webRequest = WebRequest.Create(request2);
+            //definimos el tipo de webrequest al que llamaremos
+            webRequest.Method = "POST";
+            //definimos content\
+            webRequest.ContentType = "application/json; charset=utf-8";
+            //cargamos los datos a enviar
+            using (var streamWriter = new StreamWriter(webRequest.GetRequestStream()))
+            {
+                //$formData = array(
+                //          "codeidentifier" 	=> (string)$nIdentifier,
+                //          "cant" 	      	=> (string)$nCant,
+                //          "long" 		=> (string)$nLong,
+                //          "width" 		=> (string)$nWidth,
+                //          "thick" 		=> (string)$nThick,
+                //          "token" 		=> unserializeObj($_SESSION["_ObjSession"])->ActualToken,
+                //          "ipbase64" 	=> $_SESSION["_IpAddressSession"]
+                //         );
+
+                string json = "{\"tokensite\":\"" + SecretKey + "\",\"ipbase64\":\"" + laip + "\",\"username\":\"" + miuser + "\",\"password\":\"" + mipass + "\",\"language\":\"SPA\"}";
+                streamWriter.Write(json.ToString());
+                //"  "
+            }
+            //obtenemos la respuesta del servidor
+            var httpResponse = (HttpWebResponse)webRequest.GetResponse();
+            //leemos la respuesta y la tratamos
+            using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
+            {
+                var result2 = streamReader.ReadToEnd();
+                //traducimos el resultado
+                // result = JsonSerializer.Deserialize<DataCollectionSingle<producto>>(result2);
+                result = JsonConvert.DeserializeObject<sesion>(result2);
+            }
+            //
+            //if (_area == null)
+            //{
+            //    _area = new resultList();
+            //    _area.result = new List<result>();
+            //    _area.result[0].areaname = "vacia";
+            //}
+
+            return result;
+        }
+        public sesion LogOutSistema(string laip, string token)
+        {
+            var result = new sesion();
+
+            //resultList _area;
+            // string token = GetToken(laip).activeToken;
+            //string de url principal
+            string urlPath = "https://riews.reinfoempresa.com:8443";
+
+            //string de la url del método de llamada
+            string request2 = urlPath + "/RIEWS/webapi/PrivateServices/authenticationLogOutW";
+            //creamos un webRequest con el tipo de método.
+            WebRequest webRequest = WebRequest.Create(request2);
+            //definimos el tipo de webrequest al que llamaremos
+            webRequest.Method = "POST";
+            //definimos content\
+            webRequest.ContentType = "application/json; charset=utf-8";
+            //cargamos los datos a enviar
+            using (var streamWriter = new StreamWriter(webRequest.GetRequestStream()))
+            {
+                //$formData = array(
+                //          "codeidentifier" 	=> (string)$nIdentifier,
+                //          "cant" 	      	=> (string)$nCant,
+                //          "long" 		=> (string)$nLong,
+                //          "width" 		=> (string)$nWidth,
+                //          "thick" 		=> (string)$nThick,
+                //          "token" 		=> unserializeObj($_SESSION["_ObjSession"])->ActualToken,
+                //          "ipbase64" 	=> $_SESSION["_IpAddressSession"]
+                //         );
+
+                string json = "{\"token\":\"" + token + "\",\"ipbase64\":\"" + laip + "\"}";
+                streamWriter.Write(json.ToString());
+                //"  "
+            }
+            //obtenemos la respuesta del servidor
+            var httpResponse = (HttpWebResponse)webRequest.GetResponse();
+            //leemos la respuesta y la tratamos
+            using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
+            {
+                var result2 = streamReader.ReadToEnd();
+                //traducimos el resultado
+                // result = JsonSerializer.Deserialize<DataCollectionSingle<producto>>(result2);
+                result = JsonConvert.DeserializeObject<sesion>(result2);
+            }
+            //
+            //if (_area == null)
+            //{
+            //    _area = new resultList();
+            //    _area.result = new List<result>();
+            //    _area.result[0].areaname = "vacia";
+            //}
+
+            return result;
         }
 
         //

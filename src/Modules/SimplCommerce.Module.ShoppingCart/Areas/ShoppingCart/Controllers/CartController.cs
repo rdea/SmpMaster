@@ -48,15 +48,15 @@ namespace SimplCommerce.Module.ShoppingCart.Areas.ShoppingCart.Controllers
         public async Task<IActionResult> AddToCart([FromBody] AddToCartModel model)
         {
             var currentUser = await _workContext.GetCurrentUser();
-            //var result = await _cartService.AddToCart(currentUser.Id, model.ProductId, model.Quantity);
-            var result = AddLineaCarrito(GetIP(), GetSession(), model.ProductId, model.Quantity);
-            if (result.status == "OK")
+         //   var result = await _cartService.AddToCart(currentUser.Id, model.ProductId, model.Quantity);
+            var result2 = AddLineaCarrito(GetIP(), GetSession(), model.ProductId, model.Quantity);
+            if (result2.status == "OK")
             {
                 return RedirectToAction("AddToCartResult", new { productId = model.ProductId });
             }
             else
             {
-                return Ok(new { Error = true, Message = result.explained });
+                return Ok(new { Error = true, Message = result2.explained });
             }
    //         function CRGDSPApigetBasketLine2($nIdentifier, $nCant, $nLong, $nWidth, $nThick) // add new basket line with data structure json 
    //         {   

@@ -5,7 +5,7 @@ namespace SimplCommerce.Module.Core.Areas.Core.ViewModels.Account
     public class LoginViewModel
     {
         [Required(ErrorMessage = "The Email field is required.")]
-        [EmailAddress(ErrorMessage = "The Email field is not a valid e-mail address.")]
+       // [EmailAddress(ErrorMessage = "The Email field is not a valid e-mail address.")]
         [Display(Name = "Email")]
         public string Email { get; set; }
 

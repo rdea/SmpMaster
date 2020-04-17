@@ -16,6 +16,9 @@ using SimplCommerce.Module.ShoppingCart.Models;
 using SimplCommerce.Module.Tax.Services;
 using SimplCommerce.Module.Orders.Events;
 using SimplCommerce.Module.ShoppingCart.Services;
+using System.Net;
+using System.IO;
+using CRM.Models;
 
 namespace SimplCommerce.Module.Orders.Services
 {
@@ -55,7 +58,6 @@ namespace SimplCommerce.Module.Orders.Services
             _userAddressRepository = userAddressRepository;
             _mediator = mediator;
         }
-
         public async Task<Result<Order>> CreateOrder(long cartId, string paymentMethod, decimal paymentFeeAmount, OrderStatus orderStatus = OrderStatus.New)
         {
             var cart = await _cartRepository
@@ -139,6 +141,116 @@ namespace SimplCommerce.Module.Orders.Services
             return await CreateOrder(cartId, paymentMethod, paymentFeeAmount, shippingData.ShippingMethod, billingAddress, shippingAddress, orderStatus);
         }
 
+        public async Task<Result<Order>> CreateOrder(long cartId, string paymentMethod, decimal paymentFeeAmount, OrderStatus orderStatus = OrderStatus.New, string ip = "1" , string token= "1")
+        {
+            var cart = await _cartRepository
+               .Query()
+               .Where(x => x.Id == cartId).FirstOrDefaultAsync();
+
+            if (cart == null)
+            {
+                return Result.Fail<Order>($"Cart id {cartId} cannot be found");
+            }
+
+            var shippingData = JsonConvert.DeserializeObject<DeliveryInformationVm>(cart.ShippingData);
+            Address billingAddress;
+            Address shippingAddress;
+            if (shippingData.ShippingAddressId == 0)
+            {
+                var address = new Address
+                {
+                    AddressLine1 = shippingData.NewAddressForm.AddressLine1,
+                    AddressLine2 = shippingData.NewAddressForm.AddressLine2,
+                    ContactName = shippingData.NewAddressForm.ContactName,
+                    CountryId = shippingData.NewAddressForm.CountryId,
+                    StateOrProvinceId = shippingData.NewAddressForm.StateOrProvinceId,
+                    DistrictId = shippingData.NewAddressForm.DistrictId,
+                    City = shippingData.NewAddressForm.City,
+                    ZipCode = shippingData.NewAddressForm.ZipCode,
+                    Phone = shippingData.NewAddressForm.Phone
+                };
+
+                var userAddress = new UserAddress
+                {
+                    Address = address,
+                    AddressType = AddressType.Shipping,
+                    UserId = cart.CustomerId
+                };
+
+                _userAddressRepository.Add(userAddress);
+
+                shippingAddress = address;
+            }
+            else
+            {
+                shippingAddress = _userAddressRepository.Query().Where(x => x.Id == shippingData.ShippingAddressId).Select(x => x.Address).First();
+            }
+
+            if (shippingData.UseShippingAddressAsBillingAddress)
+            {
+                billingAddress = shippingAddress;
+            }
+            else if (shippingData.BillingAddressId == 0)
+            {
+                var address = new Address
+                {
+                    AddressLine1 = shippingData.NewBillingAddressForm.AddressLine1,
+                    AddressLine2 = shippingData.NewBillingAddressForm.AddressLine2,
+                    ContactName = shippingData.NewBillingAddressForm.ContactName,
+                    CountryId = shippingData.NewBillingAddressForm.CountryId,
+                    StateOrProvinceId = shippingData.NewBillingAddressForm.StateOrProvinceId,
+                    DistrictId = shippingData.NewBillingAddressForm.DistrictId,
+                    City = shippingData.NewBillingAddressForm.City,
+                    ZipCode = shippingData.NewBillingAddressForm.ZipCode,
+                    Phone = shippingData.NewBillingAddressForm.Phone
+                };
+
+                var userAddress = new UserAddress
+                {
+                    Address = address,
+                    AddressType = AddressType.Billing,
+                    UserId = cart.CustomerId
+                };
+
+                _userAddressRepository.Add(userAddress);
+
+                billingAddress = address;
+            }
+            else
+            {
+                billingAddress = _userAddressRepository.Query().Where(x => x.Id == shippingData.BillingAddressId).Select(x => x.Address).First();
+            }
+            if (ip != "1" && token != "1" && cart!=null)
+            {
+                decimal totalcarrito = decimal.Zero;
+
+                foreach (CartItem ci in cart.Items)
+                {
+                    var p = RecuperaArtículo(ip, token, ci.ProductId);
+                    if (ci.Product == null)
+                    {
+                        ci.Product = new Catalog.Models.Product();
+                    }
+                    ci.Product.Price = decimal.Parse(p.result.pricewithtax);
+                    ci.Product.Name = p.result.description;
+                    ci.Product.Slug = ci.Product.Name.Replace(" ", "-") + "-" + ci.ProductId;
+                    totalcarrito += (ci.Product.Price * ci.Quantity);
+                }
+            }
+           Result<Order> resultado = await CreateOrder(cartId, paymentMethod, paymentFeeAmount, shippingData.ShippingMethod, billingAddress, shippingAddress, orderStatus);
+            //si resultado ok, subimos compra al WS
+            
+            if (resultado.Success)
+            {
+                var orderc = SubeCompra(ip, token, cart, shippingAddress, billingAddress);
+                if (orderc.status == "OK")
+                {
+                    var r = "hola";
+                }
+            }
+            return resultado;
+        }
+
         public async Task<Result<Order>> CreateOrder(long cartId, string paymentMethod, decimal paymentFeeAmount, string shippingMethodName, Address billingAddress, Address shippingAddress, OrderStatus orderStatus = OrderStatus.New)
         {
             var cart = _cartRepository
@@ -206,15 +318,16 @@ namespace SimplCommerce.Module.Orders.Services
 
             foreach (var cartItem in cart.Items)
             {
-                if (!cartItem.Product.IsAllowToOrder || !cartItem.Product.IsPublished || cartItem.Product.IsDeleted)
-                {
-                    return Result.Fail<Order>($"The product {cartItem.Product.Name} is not available any more");
-                }
+                //codigo origen, necesairio revisar validaciones para la compra tipo stock etc
+                //if (!cartItem.Product.IsAllowToOrder || !cartItem.Product.IsPublished || cartItem.Product.IsDeleted)
+                //{
+                //    return Result.Fail<Order>($"The product {cartItem.Product.Name} is not available any more");
+                //}
 
-                if (cartItem.Product.StockTrackingIsEnabled && cartItem.Product.StockQuantity < cartItem.Quantity)
-                {
-                    return Result.Fail<Order>($"There are only {cartItem.Product.StockQuantity} items available for {cartItem.Product.Name}");
-                }
+                //if (cartItem.Product.StockTrackingIsEnabled && cartItem.Product.StockQuantity < cartItem.Quantity)
+                //{
+                //    return Result.Fail<Order>($"There are only {cartItem.Product.StockQuantity} items available for {cartItem.Product.Name}");
+                //}
 
                 var taxPercent = await _taxService.GetTaxPercent(cartItem.Product.TaxClassId, shippingAddress.CountryId, shippingAddress.StateOrProvinceId, shippingAddress.ZipCode);
                 var productPrice = cartItem.Product.Price;
@@ -328,7 +441,8 @@ namespace SimplCommerce.Module.Orders.Services
                 _orderRepository.SaveChanges();
                 transaction.Commit();
             }
-
+            //aqui tenemos que borrar el carrito
+            
             return Result.Ok(order);
         }
 
@@ -456,9 +570,129 @@ namespace SimplCommerce.Module.Orders.Services
             var couponValidationResult = await _couponService.Validate(cart.CustomerId, cart.CouponCode, cartInfoForCoupon);
             return couponValidationResult;
         }
+        public DataCollectionSingle<producto> RecuperaArtículo(string laip, string _sesionToken, long identificador)
+        {
+            var result = new DataCollectionSingle<producto>();
+
+            //resultList _area;
+            // string token = GetToken(laip).activeToken;
+            //string de url principal
+            string urlPath = "https://riews.reinfoempresa.com:8443";
+            //string codeidentifier = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(identificador.ToString()));
+            string codeidentifier = identificador.ToString();
+
+            //string de la url del método de llamada
+            //https://riews.reinfoempresa.com:8443/RIEWS/webapi/PrivateServices/articles1
+            string request2 = urlPath + "/RIEWS/webapi/PrivateServices/articles1W";
+            //creamos un webRequest con el tipo de método.
+            WebRequest webRequest = WebRequest.Create(request2);
+            //definimos el tipo de webrequest al que llamaremos
+            webRequest.Method = "POST";
+            //definimos content\
+            webRequest.ContentType = "application/json; charset=utf-8";
+            //cargamos los datos a enviar
+            using (var streamWriter = new StreamWriter(webRequest.GetRequestStream()))
+            {
+                //string json = "{\"token\":\"" + token + "\",\"ipbase64\":\"" + laip +"}";
+                string json = "{\"token\":\"" + _sesionToken + "\",\"ipbase64\":\"" + laip + "\",\"codeidentifier\":\"" + codeidentifier + "\"}";
+                streamWriter.Write(json.ToString());
+                //"  "
+            }
+            //obtenemos la respuesta del servidor
+            var httpResponse = (HttpWebResponse)webRequest.GetResponse();
+            //leemos la respuesta y la tratamos
+            using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
+            {
+                var result2 = streamReader.ReadToEnd();
+                //traducimos el resultado
+                // result = JsonSerializer.Deserialize<DataCollectionSingle<producto>>(result2);
+                result = JsonConvert.DeserializeObject<DataCollectionSingle<producto>>(result2);
+            }
+            //
+            //if (_area == null)
+            //{
+            //    _area = new resultList();
+            //    _area.result = new List<result>();
+            //    _area.result[0].areaname = "vacia";
+            //}
+
+            return result;
+        }
+        public OrderConf SubeCompra(string laip, string _sesionToken, Cart carro, Address direccion, Address bussines)
+        {
+            var result = new OrderConf();
+
+            //resultList _area;
+            // string token = GetToken(laip).activeToken;
+            //string de url principal
+            //depurar y revisar alguno de ellos va vacio...
+            string urlPath = "https://riews.reinfoempresa.com:8443";
+            string nombre = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(carro.Customer.FullName));
+            string Comercial = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(bussines.ContactName));
+            string calle = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(direccion.AddressLine1));
+            string calle2 = string.Empty;
+            if (direccion.AddressLine2 != null)
+            {
+                calle2 = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(direccion.AddressLine2));
+            }
+            else
+            {
+                calle2  = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(" "));
+            }
+            
+            string poblacion = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(direccion.City));
+            string provincia = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(direccion.StateOrProvinceId.ToString()));
+            string cp = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(direccion.ZipCode));
+            //cambiar aqui para un campo nif
+            string nif = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("44455589q"));
+            string pais = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(direccion.CountryId.ToString()));
+            string web = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(" "));
+            string tfn1 = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(direccion.Phone));
+            string tfn2 = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(direccion.Phone));
+            string email = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(carro.Customer.Email));
+            string pin = "1";
+            //string de la url del método de llamada
+            //https://riews.reinfoempresa.com:8443/RIEWS/webapi/PrivateServices/articles1
+            string request2 = urlPath + "/RIEWS/webapi/PrivateServices/basketlines7W";
+            //creamos un webRequest con el tipo de método.
+            WebRequest webRequest = WebRequest.Create(request2);
+            //definimos el tipo de webrequest al que llamaremos
+            webRequest.Method = "POST";
+            //definimos content\
+            webRequest.ContentType = "application/json; charset=utf-8";
+            //cargamos los datos a enviar
+            using (var streamWriter = new StreamWriter(webRequest.GetRequestStream()))
+            {
+                //string json = "{\"token\":\"" + token + "\",\"ipbase64\":\"" + laip +"}";
+                string json = "{\"token\":\"" + _sesionToken + "\",\"ipbase64\":\"" + laip + "\",\"name\":\"" + nombre + "\",\"commercialname\":\"" + Comercial + "\",\"address\":\"" + calle + "\",\"address2\":\"" + calle2 + "\",\"population\":\"" + poblacion + "\",\"postalcode\":\"" + cp + "\",\"province\":\"" + provincia + "\"" +
+                    ",\"identitydocument\":\"" + nif + "\",\"country\":\"" + pais + "\",\"email\":\"" + email + "\",\"web\":\"" + web + "\",\"phone\":\"" + tfn1 + "\",\"movil\":\"" + tfn2 + "\",\"sendpin\":\""+pin+ "\"}";
+                streamWriter.Write(json.ToString());
+                //"  "
+            }
+            //obtenemos la respuesta del servidor
+            var httpResponse = (HttpWebResponse)webRequest.GetResponse();
+            //leemos la respuesta y la tratamos
+            using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
+            {
+                var result2 = streamReader.ReadToEnd();
+                //traducimos el resultado
+                // result = JsonSerializer.Deserialize<DataCollectionSingle<producto>>(result2);
+                result = JsonConvert.DeserializeObject<OrderConf>(result2);
+            }
+            //
+            //if (_area == null)
+            //{
+            //    _area = new resultList();
+            //    _area.result = new List<result>();
+            //    _area.result[0].areaname = "vacia";
+            //}
+
+            return result;
+        }
 
         private async Task<Result<ShippingPrice>> ValidateShippingMethod(string shippingMethodName, Address shippingAddress, Cart cart)
         {
+            //aqui falla, tenemos que cargar los datos de las lineas
             var applicableShippingPrices = await _shippingPriceService.GetApplicableShippingPrices(new GetShippingPriceRequest
             {
                 OrderAmount = cart.Items.Sum(x => x.Product.Price * x.Quantity),

@@ -1,11 +1,17 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
+using CRM.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using SimplCommerce.Infrastructure.Data;
 using SimplCommerce.Module.Core.Extensions;
+using SimplCommerce.Module.Orders.Models;
 using SimplCommerce.Module.Orders.Services;
 using SimplCommerce.Module.PaymentCoD.Models;
 using SimplCommerce.Module.Payments.Models;
@@ -42,7 +48,17 @@ namespace SimplCommerce.Module.PaymentCoD.Areas.PaymentCoD.Controllers
         {
             var currentUser = await _workContext.GetCurrentUser();
             var cart = await _cartService.GetActiveCartDetails(currentUser.Id);
-            if(cart == null)
+            decimal totalcarrito = decimal.Zero;
+
+            foreach (CartItemVm ci in cart.Items)
+            {
+                var p = RecuperaArtículo(GetIP(), GetSession(), ci.ProductId);
+                ci.ProductPrice = decimal.Parse(p.result.pricewithtax);
+                ci.ProductName = p.result.description;
+                totalcarrito += (ci.ProductPrice * ci.Quantity);
+            }
+            cart.SubTotal = totalcarrito;
+            if (cart == null)
             {
                 return NotFound();
             }
@@ -53,8 +69,9 @@ namespace SimplCommerce.Module.PaymentCoD.Areas.PaymentCoD.Controllers
                 return Redirect("~/checkout/payment");
             }
 
-            var calculatedFee = CalculateFee(cart);           
-            var orderCreateResult = await _orderService.CreateOrder(cart.Id, "CashOnDelivery", calculatedFee);
+            var calculatedFee = CalculateFee(cart);      
+             // revisar este procedimiento, da error
+            var orderCreateResult = await _orderService.CreateOrder(cart.Id, "CashOnDelivery", calculatedFee,OrderStatus.New,GetIP(), GetSession());
 
             if (!orderCreateResult.Success)
             {
@@ -64,6 +81,70 @@ namespace SimplCommerce.Module.PaymentCoD.Areas.PaymentCoD.Controllers
 
             return Redirect($"~/checkout/success?orderId={orderCreateResult.Value.Id}");
         }
+        public string GetIP()
+        {
+            return System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(HttpContext.Features.Get<IHttpConnectionFeature>()?.RemoteIpAddress?.ToString()));
+        }
+        public string GetSession()
+        {
+            string se = HttpContext.Session.GetString("idtk");
+            if (se == null)
+            {
+                se = comunes.GetToken(GetIP());
+                HttpContext.Session.SetString("idtk", se);
+            }
+            return HttpContext.Session.GetString("idtk");
+        }
+
+        public DataCollectionSingle<producto> RecuperaArtículo(string laip, string _sesionToken, long identificador)
+        {
+            var result = new DataCollectionSingle<producto>();
+
+            //resultList _area;
+            // string token = GetToken(laip).activeToken;
+            //string de url principal
+            string urlPath = "https://riews.reinfoempresa.com:8443";
+            //string codeidentifier = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(identificador.ToString()));
+            string codeidentifier = identificador.ToString();
+
+            //string de la url del método de llamada
+            //https://riews.reinfoempresa.com:8443/RIEWS/webapi/PrivateServices/articles1
+            string request2 = urlPath + "/RIEWS/webapi/PrivateServices/articles1W";
+            //creamos un webRequest con el tipo de método.
+            WebRequest webRequest = WebRequest.Create(request2);
+            //definimos el tipo de webrequest al que llamaremos
+            webRequest.Method = "POST";
+            //definimos content\
+            webRequest.ContentType = "application/json; charset=utf-8";
+            //cargamos los datos a enviar
+            using (var streamWriter = new StreamWriter(webRequest.GetRequestStream()))
+            {
+                //string json = "{\"token\":\"" + token + "\",\"ipbase64\":\"" + laip +"}";
+                string json = "{\"token\":\"" + _sesionToken + "\",\"ipbase64\":\"" + laip + "\",\"codeidentifier\":\"" + codeidentifier + "\"}";
+                streamWriter.Write(json.ToString());
+                //"  "
+            }
+            //obtenemos la respuesta del servidor
+            var httpResponse = (HttpWebResponse)webRequest.GetResponse();
+            //leemos la respuesta y la tratamos
+            using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
+            {
+                var result2 = streamReader.ReadToEnd();
+                //traducimos el resultado
+                // result = JsonSerializer.Deserialize<DataCollectionSingle<producto>>(result2);
+                result = JsonConvert.DeserializeObject<DataCollectionSingle<producto>>(result2);
+            }
+            //
+            //if (_area == null)
+            //{
+            //    _area = new resultList();
+            //    _area.result = new List<result>();
+            //    _area.result[0].areaname = "vacia";
+            //}
+
+            return result;
+        }
+
 
         private CoDSetting GetSetting()
         {

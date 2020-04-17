@@ -72,7 +72,7 @@ namespace SimplCommerce.Module.Orders.Areas.Orders.Controllers
             cart.ShippingData = JsonConvert.SerializeObject(deliveryInformationVm);
             cart.OrderNote = deliveryInformationVm.OrderNote;
             _cartRepository.SaveChanges();
-            var orderCreateResult = await _orderService.CreateOrder(cart.Id, "CashOnDelivery", 0);
+            var orderCreateResult = await _orderService.CreateOrder(cart.Id, "CashOnDelivery", 0 ,Models.OrderStatus.New,"1","1");
 
             if (!orderCreateResult.Success)
             {

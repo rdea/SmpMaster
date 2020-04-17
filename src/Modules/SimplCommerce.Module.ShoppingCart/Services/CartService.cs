@@ -9,6 +9,8 @@ using SimplCommerce.Module.ShoppingCart.Models;
 using SimplCommerce.Module.Core.Services;
 using SimplCommerce.Module.Pricing.Services;
 using SimplCommerce.Module.ShoppingCart.Areas.ShoppingCart.ViewModels;
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Http;
 
 namespace SimplCommerce.Module.ShoppingCart.Services
 {
@@ -109,6 +111,15 @@ namespace SimplCommerce.Module.ShoppingCart.Services
         // TODO separate getting product thumbnail, varation options from here
         public async Task<CartVm> GetActiveCartDetails(long customerId, long createdById)
         {
+            //var carrito = DataCarrito();
+            //if (carrito == null)
+            //{
+            //    return null;
+            //}
+            //else {
+            //    return carrito;
+            //}
+
             // datos del carrito se cargan aqui
             var cart = await GetActiveCart(customerId, createdById);
             if (cart == null)
@@ -125,25 +136,44 @@ namespace SimplCommerce.Module.ShoppingCart.Services
                 ShippingAmount = cart.ShippingAmount,
                 OrderNote = cart.OrderNote
             };
-
+            //tenemos que cargar aqui los datos del carrito, tenemos la ID de los productos en el Cart.Items
+            // recorremos el array.
             cartVm.Items = _cartItemRepository
-                .Query()
-                .Include(x => x.Product).ThenInclude(p => p.ThumbnailImage)
-                .Include(x => x.Product).ThenInclude(p => p.OptionCombinations).ThenInclude(o => o.Option)
-                .Where(x => x.CartId == cart.Id).ToList()
-                .Select(x => new CartItemVm(_currencyService)
-                {
-                    Id = x.Id,
-                    ProductId = x.ProductId,
-                    ProductName = x.Product.Name,
-                    ProductPrice = x.Product.Price,
-                    ProductStockQuantity = x.Product.StockQuantity,
-                    ProductStockTrackingIsEnabled = x.Product.StockTrackingIsEnabled,
-                    IsProductAvailabeToOrder = x.Product.IsAllowToOrder && x.Product.IsPublished && !x.Product.IsDeleted,
-                    ProductImage = _mediaService.GetThumbnailUrl(x.Product.ThumbnailImage),
-                    Quantity = x.Quantity,
-                    VariationOptions = CartItemVm.GetVariationOption(x.Product)
-                }).ToList();
+    .Query()
+    .Where(x => x.CartId == cart.Id).ToList()
+    .Select(x => new CartItemVm(_currencyService)
+    {
+        Id = x.Id,
+        ProductId = x.ProductId,
+       // ProductName = x.Product.Name,
+        //ProductPrice = x.Product.Price,
+        //ProductStockQuantity = x.Product.StockQuantity,
+        //ProductStockTrackingIsEnabled = x.Product.StockTrackingIsEnabled,
+        //IsProductAvailabeToOrder = x.Product.IsAllowToOrder && x.Product.IsPublished && !x.Product.IsDeleted,
+        Quantity = x.Quantity
+    }).ToList();
+
+
+
+            //codigo origen
+            //cartVm.Items = _cartItemRepository
+            //    .Query()
+            //    .Include(x => x.Product).ThenInclude(p => p.ThumbnailImage)
+            //    .Include(x => x.Product).ThenInclude(p => p.OptionCombinations).ThenInclude(o => o.Option)
+            //    .Where(x => x.CartId == cart.Id).ToList()
+            //    .Select(x => new CartItemVm(_currencyService)
+            //    {
+            //        Id = x.Id,
+            //        ProductId = x.ProductId,
+            //        ProductName = x.Product.Name,
+            //        ProductPrice = x.Product.Price,
+            //        ProductStockQuantity = x.Product.StockQuantity,
+            //        ProductStockTrackingIsEnabled = x.Product.StockTrackingIsEnabled,
+            //        IsProductAvailabeToOrder = x.Product.IsAllowToOrder && x.Product.IsPublished && !x.Product.IsDeleted,
+            //        ProductImage = _mediaService.GetThumbnailUrl(x.Product.ThumbnailImage),
+            //        Quantity = x.Quantity,
+            //        VariationOptions = CartItemVm.GetVariationOption(x.Product)
+            //    }).ToList();
 
             cartVm.SubTotal = cartVm.Items.Sum(x => x.Quantity * x.ProductPrice);
             if (!string.IsNullOrWhiteSpace(cartVm.CouponCode))
@@ -165,6 +195,9 @@ namespace SimplCommerce.Module.ShoppingCart.Services
 
             return cartVm;
         }
+
+     
+
 
         public async Task<CouponValidationResult> ApplyCoupon(long cartId, string couponCode)
         {

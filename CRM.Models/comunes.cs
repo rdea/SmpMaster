@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text;
+using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 
 namespace CRM.Models
 {
-    public class comunes
+    public static class comunes
     {
         public static string GetToken(string laip)
         {
@@ -37,6 +38,7 @@ namespace CRM.Models
             return sesion.activeToken;
         }
 
+       
 
     }
 }
