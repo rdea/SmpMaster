@@ -49,7 +49,7 @@ namespace SimplCommerce.Module.Orders.Areas.Orders.Components
                     foreach (CartItemVm ci in cart2.Items)
                     {
                         var p = RecuperaArtículo(GetIP(), GetSession(), ci.ProductId);
-                        totalcart += (decimal.Parse(p.result.pricewithtax) * ci.Quantity);
+                        totalcart += (decimal.Parse(p.result.pricewithtax.Replace(".", ",")) * ci.Quantity);
                     }
                     if (totalcart != totalcarrito)
                     {
@@ -290,9 +290,9 @@ namespace SimplCommerce.Module.Orders.Areas.Orders.Components
                 var arti = RecuperaArtículo(GetIP(), GetSession(), civ.ProductId);
                 int sta = 0;
                 _ = int.TryParse(arti.result.stocks, out sta);
-                civ.ProductStockQuantity = decimal.ToInt32(decimal.Parse(arti.result.stocks));
+                civ.ProductStockQuantity = decimal.ToInt32(decimal.Parse(arti.result.stocks.Replace(".", ",")));
                 civ.ProductName = ln.description;
-                civ.ProductPrice = decimal.Parse(ln.pricewithtax);
+                civ.ProductPrice = decimal.Parse(ln.pricewithtax.Replace(".", ","));
                 civ.IsProductAvailabeToOrder = true;
                 civ.ProductStockTrackingIsEnabled = false;
                 //Core.Models.Media pti = new ProductThumbnail().;
@@ -300,7 +300,7 @@ namespace SimplCommerce.Module.Orders.Areas.Orders.Components
                 civ.Quantity = decimal.ToInt32(decimal.Parse(ln.quantity));
                 cartVm.Items.Add(civ);
             }
-            cartVm.SubTotal = decimal.Parse(blc.totalwithtax);
+            cartVm.SubTotal = decimal.Parse(blc.totalwithtax.Replace(".", ","));
             cartVm.Discount = 0;
             return cartVm;
         }

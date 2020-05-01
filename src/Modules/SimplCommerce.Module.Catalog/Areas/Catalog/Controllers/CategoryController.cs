@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Text;
 using CRM.Models;
@@ -71,25 +72,49 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
                 CurrentSearchOption = searchOption,
                 FilterOption = new FilterOption()
             };
+            //TODO
+            //sacar el total de lo artículos para el model totalproduct
+            //dependiendo de la pagina, tendremos que pasar el init y el pagesize (fin = init+pagesize)
 
-
-            var productos = RecuperaArtículosCategoria(GetIP(), GetSession(), category);
-            if (productos.result.Count == 0 || productos is null)
+            var productosCount = RecuperaArtículosCategoria(GetIP(), GetSession(), category, searchOption);
+            //if (productos.result.Count == 0 || productos is null)
+            if (productosCount.result.Count == 0)
             {
                 model.TotalProduct = 0;
                 return View(model);
             }
 
-            model.TotalProduct = productos.result.Count();
+            model.TotalProduct = productosCount.result.Count;
+
+            //preparamos el filtro de todos los productos que tenemos, sin filtrar.
+            AppendFilterOptionsToModelModifier(model, productosCount);
+
+
             var currentPageNum = searchOption.Page <= 0 ? 1 : searchOption.Page;
             var offset = (_pageSize * currentPageNum) - _pageSize;
+
             while (currentPageNum > 1 && offset >= model.TotalProduct)
             {
                 currentPageNum--;
                 offset = (_pageSize * currentPageNum) - _pageSize;
             }
+            DataCollection<producto> productos;
+            //if (searchOption.Sort != null)
+            //{
+            //    productos = RecuperaArtículosCategoria(GetIP(), GetSession(), category, (currentPageNum-1) * _pageSize, _pageSize-1, searchOption);
+            //}
+            //else
+            //{
+            //    productos = RecuperaArtículosCategoria(GetIP(), GetSession(), category, (currentPageNum - 1) * _pageSize, _pageSize-1);
+            //}
+            productos = RecuperaArtículosCategoria(GetIP(), GetSession(), category, (currentPageNum - 1) * _pageSize, _pageSize - 1, searchOption);
 
-
+            if (productos is null)
+            {
+                model.TotalProduct = 0;
+                return View(model);
+            }
+            
             foreach (var p in productos.result)
             {
                 ProductThumbnail tm = new ProductThumbnail();
@@ -100,7 +125,7 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
                 _ = int.TryParse(p.stocks, out r);
                 tm.StockQuantity = r;
                 decimal pr = 0;
-                pr = decimal.Parse(p.pricewithtax);
+                pr = decimal.Parse(p.pricewithtax.Replace(".",","));
                 tm.Price = pr;
                 tm.ReviewsCount = int.Parse(p.likeothers);
                 tm.IsAllowToOrder = true;
@@ -138,7 +163,6 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
                     _entityRepository.SaveChanges();
                 }
             }
-
 
             model.CurrentSearchOption.PageSize = _pageSize;
             model.CurrentSearchOption.Page = currentPageNum;
@@ -318,6 +342,80 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
 
             return query;
         }
+        private static void AppendFilterOptionsToModelModifier(ProductsByCategory model, DataCollection<producto> pr)
+        {
+            decimal priceMin = decimal.Zero;
+            decimal priceMax = decimal.Zero;
+            List<FilterBrand> fb = new List<FilterBrand>();
+            foreach (var p in pr.result)
+            {
+                if (priceMin > decimal.Parse(p.pricewithtax.Replace(".", ",")))
+                    priceMin = decimal.Parse(p.pricewithtax.Replace(".", ","));
+                if (priceMax < decimal.Parse(p.pricewithtax.Replace(".", ",")))
+                    priceMax = decimal.Parse(p.pricewithtax.Replace(".", ","));
+                var filtr = fb.Find(x => x.Id == long.Parse(p.brand));
+
+                if (filtr != null)
+                {
+                    filtr.Count++;
+                }
+                else {
+
+                    FilterBrand f = new FilterBrand
+                    {
+                        Id = long.Parse(p.brand),
+                        Name = p.brand,
+                        Slug = p.brand,
+                        Count = 1
+                    };
+
+//                    var entity = _entityRepository
+//.Query()
+//.Include(x => x.EntityType)
+//.FirstOrDefault(x => x.Slug == f.Slug);
+
+//                    if (entity == null)
+//                    {
+//                        Entity en = new Entity();
+
+//                        en.EntityId = (long)p.brand
+//                        en.Name = p.brand;
+//                        en.Slug = f.Slug;// + "-" + tm.Id;
+//                        var enType = _entityTypeRepository.Query().FirstOrDefault(x => x.Id == "Brand");
+//                        en.EntityType = enType;
+
+//                        //en.EntityType = (EntityType)enType;
+//                        //en.EntityType = new EntityType("Product");
+//                        //en.EntityType.AreaName = "Catalog";
+//                        //en.EntityType.IsMenuable = false;
+//                        //en.EntityType.RoutingController = "Product";
+//                        //en.EntityType.RoutingAction = "ProductDetail";
+//                        _entityRepository.Add(en);
+//                        _entityRepository.SaveChanges();
+//                    }
+
+                    fb.Add(f);
+                }
+            }
+            model.FilterOption.Price.MaxPrice = priceMax;
+            model.FilterOption.Price.MinPrice = priceMin;
+
+            model.FilterOption.Brands = fb;
+
+            //model.FilterOption.Price.MaxPrice = query.Max(x => x.Price);
+            //model.FilterOption.Price.MinPrice = query.Min(x => x.Price);
+
+            //model.FilterOption.Brands = query.Include(x => x.Brand)
+            //    .Where(x => x.BrandId != null).ToList()
+            //    .GroupBy(x => x.Brand)
+            //    .Select(g => new FilterBrand
+            //    {
+            //        Id = g.Key.Id,
+            //        Name = g.Key.Name,
+            //        Slug = g.Key.Slug,
+            //        Count = g.Count()
+            //    }).ToList();
+        }
 
         private static void AppendFilterOptionsToModel(ProductsByCategory model, IQueryable<Product> query)
         {
@@ -335,7 +433,7 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
                     Count = g.Count()
                 }).ToList();
         }
-        public DataCollection<producto> RecuperaArtículosCategoria(string laip, string _sesionToken, Category categoria)
+        public DataCollection<producto> RecuperaArtículosCategoria(string laip, string _sesionToken, Category categoria, SearchOption soption)
         {
             var result = new DataCollection<producto>();
 
@@ -343,7 +441,7 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
             // string token = GetToken(laip).activeToken;
             //string de url principal
             string urlPath = "https://riews.reinfoempresa.com:8443";
-            string order = System.Convert.ToBase64String(System.Text.Encoding.Default.GetBytes("DESCRIPTION DESC"));
+            string order = System.Convert.ToBase64String(System.Text.Encoding.Default.GetBytes("DESCRIPTION ASC"));
 
             //esta sentencia funciona
             //[{"statementv1":[{"field":"DESCRIPTION","operator":"like","fieldliteral":"%%","type":"text","connector":"and"},{"field":"PRICEWITHTAX","operator":">=","fieldliteral":"'0.01'","type":"numeric","connector":"and"},{"field":"PRICEWITHTAX","operator":"<=","fieldliteral":"'1000'","type":"numeric","connector":""}]}]
@@ -361,8 +459,27 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
             //statement += @"%"",""type"":""text"",""connector"":""""}]}]";
 
             string statement = @"[{""statementv1"":[{""field"":""DIVISION"",""operator"":""="",""fieldliteral"":""" + categoria.Division;
+            if(categoria.Section > 0)
+            {
                 statement += @""",""type"":""numeric"",""connector"":""and""},";
-            statement += @"{""field"":""SECTION"",""operator"":""="",""fieldliteral"":""" + categoria.Section;
+                statement += @"{""field"":""SECTION"",""operator"":""="",""fieldliteral"":""" + categoria.Section;
+            }
+            if (soption.MinPrice != null)
+            {
+                statement += @""",""type"":""numeric"",""connector"":""and""},";
+                statement += @"{""field"":""PRICEWITHTAX"",""operator"":"">="",""fieldliteral"":""" + soption.MinPrice;
+            }
+            if (soption.MaxPrice != null)
+            {
+                statement += @""",""type"":""numeric"",""connector"":""and""},";
+                statement += @"{""field"":""PRICEWITHTAX"",""operator"":""<="",""fieldliteral"":""" + soption.MaxPrice;
+            }
+            if (soption.Brand != null)
+            {
+                statement += @""",""type"":""numeric"",""connector"":""and""},";
+                statement += @"{""field"":""BRAND"",""operator"":""="",""fieldliteral"":""" + soption.Brand;
+            }
+
             //statement  += @""",""type"":""numeric"",""connector"":""and""},";
             //statement += @"{""field"":""SUBSECTION"",""operator"":""="",""fieldliteral"":""" + categoria.Subsection;
             //statement += @""",""type"":""numeric"",""connector"":""and""},";
@@ -386,7 +503,7 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
             using (var streamWriter = new System.IO.StreamWriter(webRequest.GetRequestStream()))
             {
                 //string json = "{\"token\":\"" + token + "\",\"ipbase64\":\"" + laip +"}";
-                string json = "{\"token\":\"" + _sesionToken + "\",\"filter\":\"" + statement + "\",\"orderby\":\"" + order + "\",\"initrec\":\"" + 1 + "\",\"maxrecs\":\"" + 9 + "\",\"ipbase64\":\"" + laip + "\"}";
+                string json = "{\"token\":\"" + _sesionToken + "\",\"filter\":\"" + statement + "\",\"orderby\":\"" + order + "\",\"initrec\":\"" + 1 + "\",\"maxrecs\":\"" + 50 + "\",\"ipbase64\":\"" + laip + "\"}";
                 streamWriter.Write(json.ToString());
                 //"  "
             }
@@ -410,6 +527,204 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
 
             return result;
         }
+        public int RecuperaCountArtículosCategoria(string laip, string _sesionToken, Category categoria, SearchOption soption)
+        {
+            var result = new DataCollection<producto>();
+
+            //resultList _area;
+            // string token = GetToken(laip).activeToken;
+            //string de url principal
+            string urlPath = "https://riews.reinfoempresa.com:8443";
+            string order = System.Convert.ToBase64String(System.Text.Encoding.Default.GetBytes("DESCRIPTION ASC"));
+
+            //esta sentencia funciona
+            //[{"statementv1":[{"field":"DESCRIPTION","operator":"like","fieldliteral":"%%","type":"text","connector":"and"},{"field":"PRICEWITHTAX","operator":">=","fieldliteral":"'0.01'","type":"numeric","connector":"and"},{"field":"PRICEWITHTAX","operator":"<=","fieldliteral":"'1000'","type":"numeric","connector":""}]}]
+
+            // string codeidentifier = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(identificador.ToString()));
+
+            // filtro de division y seccion
+            //'{"field":"DIVISION","operator":"=","fieldliteral":"'. (string)$Division. '","type":"numeric","connector":"and"},'.
+            //                        '{"field":"SECTION","operator":"=","fieldliteral":"'. (string)$Section. '","type":"numeric","connector":';
+
+
+
+            //string statement = @"[{""statementv1"":[{""field"":""DESCRIPTION"",""operator"":""like"",""fieldliteral"":""%";
+            //statement += categoria.Name;
+            //statement += @"%"",""type"":""text"",""connector"":""""}]}]";
+
+            string statement = @"[{""statementv1"":[{""field"":""DIVISION"",""operator"":""="",""fieldliteral"":""" + categoria.Division;
+            if (categoria.Section > 0)
+            {
+                statement += @""",""type"":""numeric"",""connector"":""and""},";
+                statement += @"{""field"":""SECTION"",""operator"":""="",""fieldliteral"":""" + categoria.Section;
+            }
+            if (soption.MinPrice != null)
+            {
+                statement += @""",""type"":""numeric"",""connector"":""and""},";
+                statement += @"{""field"":""PRICEWITHTAX"",""operator"":"">="",""fieldliteral"":""" + soption.MinPrice;
+            }
+            if (soption.MaxPrice != null)
+            {
+                statement += @""",""type"":""numeric"",""connector"":""and""},";
+                statement += @"{""field"":""PRICEWITHTAX"",""operator"":""<="",""fieldliteral"":""" + soption.MaxPrice;
+            }
+            if (soption.Brand != null)
+            {
+                statement += @""",""type"":""numeric"",""connector"":""and""},";
+                statement += @"{""field"":""BRAND"",""operator"":""="",""fieldliteral"":""" + soption.Brand;
+            }
+
+            //statement  += @""",""type"":""numeric"",""connector"":""and""},";
+            //statement += @"{""field"":""SUBSECTION"",""operator"":""="",""fieldliteral"":""" + categoria.Subsection;
+            //statement += @""",""type"":""numeric"",""connector"":""and""},";
+            //statement += @"{""field"":""FAMILY"",""operator"":""="",""fieldliteral"":""" + categoria.Family;
+            //statement += @""",""type"":""numeric"",""connector"":""and""},";
+            //statement += @"{""field"":""SUBFAMILY"",""operator"":""="",""fieldliteral"":""" + categoria.Subfamily;
+            statement += @""",""type"":""numeric"",""connector"":""""}]}]";
+            statement = System.Convert.ToBase64String(Encoding.Default.GetBytes(statement));
+            //statement = @"W3sic3RhdGVtZW50djEiOlt7ImZpZWxkIjoiREVTQ1JJUFRJT04iLCJvcGVyYXRvciI6Imxpa2UiLCJmaWVsZGxpdGVyYWwiOiIlbWFydGklIiwidHlwZSI6InRleHQiLCJjb25uZWN0b3IiOiJhbmQifSx7ImZpZWxkIjoiUFJJQ0VXSVRIVEFYIiwib3BlcmF0b3IiOiI+PSIsImZpZWxkbGl0ZXJhbCI6IicwLjAxJyIsInR5cGUiOiJudW1lcmljIiwiY29ubmVjdG9yIjoiYW5kIn0seyJmaWVsZCI6IlBSSUNFV0lUSFRBWCIsIm9wZXJhdG9yIjoiPD0iLCJmaWVsZGxpdGVyYWwiOiInMTAwMCciLCJ0eXBlIjoibnVtZXJpYyIsImNvbm5lY3RvciI6IiJ9XX1d";
+            // statement = @"W3sic3RhdGVtZW50djEiOlt7ImZpZWxkIjoiREVTQ1JJUFRJT04iLCJvcGVyYXRvciI6Imxpa2UiLCJmaWVsZGxpdGVyYWwiOiIlJSIsInR5cGUiOiJ0ZXh0IiwiY29ubmVjdG9yIjoiYW5kIn0seyJmaWVsZCI6IlBSSUNFV0lUSFRBWCIsIm9wZXJhdG9yIjoiPj0iLCJmaWVsZGxpdGVyYWwiOiInMC4wMSciLCJ0eXBlIjoibnVtZXJpYyIsImNvbm5lY3RvciI6ImFuZCJ9LHsiZmllbGQiOiJQUklDRVdJVEhUQVgiLCJvcGVyYXRvciI6Ijw9IiwiZmllbGRsaXRlcmFsIjoiJzEwMDAnIiwidHlwZSI6Im51bWVyaWMiLCJjb25uZWN0b3IiOiIifV19XQ==";
+            //string de la url del método de llamada
+            //https://riews.reinfoempresa.com:8443/RIEWS/webapi/PrivateServices/articles1
+            string request2 = urlPath + "/RIEWS/webapi/PrivateServices/articles2W";
+            //creamos un webRequest con el tipo de método.
+            WebRequest webRequest = WebRequest.Create(request2);
+            //definimos el tipo de webrequest al que llamaremos
+            webRequest.Method = "POST";
+            //definimos content\
+            webRequest.ContentType = "application/json; charset=utf-8";
+            //cargamos los datos a enviar
+            using (var streamWriter = new System.IO.StreamWriter(webRequest.GetRequestStream()))
+            {
+                //string json = "{\"token\":\"" + token + "\",\"ipbase64\":\"" + laip +"}";
+                string json = "{\"token\":\"" + _sesionToken + "\",\"filter\":\"" + statement + "\",\"orderby\":\"" + order + "\",\"initrec\":\"" + 1 + "\",\"maxrecs\":\"" + 50 + "\",\"ipbase64\":\"" + laip + "\"}";
+                streamWriter.Write(json.ToString());
+                //"  "
+            }
+            //obtenemos la respuesta del servidor
+            var httpResponse = (HttpWebResponse)webRequest.GetResponse();
+            //leemos la respuesta y la tratamos
+            using (var streamReader = new System.IO.StreamReader(httpResponse.GetResponseStream()))
+            {
+                var result2 = streamReader.ReadToEnd();
+                //traducimos el resultado
+                // result = JsonSerializer.Deserialize<DataCollectionSingle<producto>>(result2);
+                result = JsonConvert.DeserializeObject<DataCollection<producto>>(result2);
+            }
+            //
+            //if (_area == null)
+            //{
+            //    _area = new resultList();
+            //    _area.result = new List<result>();
+            //    _area.result[0].areaname = "vacia";
+            //}
+
+            return result.result.Count;
+        }
+
+        public DataCollection<producto> RecuperaArtículosCategoria(string laip, string _sesionToken, Category categoria, int init, int size, SearchOption soption)
+        {
+            var result = new DataCollection<producto>();
+
+            //resultList _area;
+            // string token = GetToken(laip).activeToken;
+            //string de url principal
+            string urlPath = "https://riews.reinfoempresa.com:8443";
+            string order;
+            if (soption.Sort == null) {
+                order = System.Convert.ToBase64String(System.Text.Encoding.Default.GetBytes("DESCRIPTION ASC")); 
+            }
+            else
+            {
+                order = System.Convert.ToBase64String(System.Text.Encoding.Default.GetBytes(soption.Sort));
+            }
+
+
+
+            //esta sentencia funciona
+            //[{"statementv1":[{"field":"DESCRIPTION","operator":"like","fieldliteral":"%%","type":"text","connector":"and"},{"field":"PRICEWITHTAX","operator":">=","fieldliteral":"'0.01'","type":"numeric","connector":"and"},{"field":"PRICEWITHTAX","operator":"<=","fieldliteral":"'1000'","type":"numeric","connector":""}]}]
+
+            // string codeidentifier = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(identificador.ToString()));
+
+            // filtro de division y seccion
+            //'{"field":"DIVISION","operator":"=","fieldliteral":"'. (string)$Division. '","type":"numeric","connector":"and"},'.
+            //                        '{"field":"SECTION","operator":"=","fieldliteral":"'. (string)$Section. '","type":"numeric","connector":';
+
+
+
+            //string statement = @"[{""statementv1"":[{""field"":""DESCRIPTION"",""operator"":""like"",""fieldliteral"":""%";
+            //statement += categoria.Name;
+            //statement += @"%"",""type"":""text"",""connector"":""""}]}]";
+
+            string statement = @"[{""statementv1"":[{""field"":""DIVISION"",""operator"":""="",""fieldliteral"":""" + categoria.Division;
+            if (categoria.Section > 0)
+            {
+                statement += @""",""type"":""numeric"",""connector"":""and""},";
+                statement += @"{""field"":""SECTION"",""operator"":""="",""fieldliteral"":""" + categoria.Section;
+            }
+            if (soption.MinPrice !=null)
+            {
+                statement += @""",""type"":""numeric"",""connector"":""and""},";
+                statement += @"{""field"":""PRICEWITHTAX"",""operator"":"">="",""fieldliteral"":""" + soption.MinPrice;
+            }
+            if (soption.MaxPrice != null)
+            {
+                statement += @""",""type"":""numeric"",""connector"":""and""},";
+                statement += @"{""field"":""PRICEWITHTAX"",""operator"":""<="",""fieldliteral"":""" + soption.MaxPrice;
+            }
+            if (soption.Brand != null)
+            {
+                statement += @""",""type"":""numeric"",""connector"":""and""},";
+                statement += @"{""field"":""BRAND"",""operator"":""="",""fieldliteral"":""" + soption.Brand;
+            }
+            //statement  += @""",""type"":""numeric"",""connector"":""and""},";
+            //statement += @"{""field"":""SUBSECTION"",""operator"":""="",""fieldliteral"":""" + categoria.Subsection;
+            //statement += @""",""type"":""numeric"",""connector"":""and""},";
+            //statement += @"{""field"":""FAMILY"",""operator"":""="",""fieldliteral"":""" + categoria.Family;
+            //statement += @""",""type"":""numeric"",""connector"":""and""},";
+            //statement += @"{""field"":""SUBFAMILY"",""operator"":""="",""fieldliteral"":""" + categoria.Subfamily;
+            statement += @""",""type"":""numeric"",""connector"":""""}]}]";
+            statement = System.Convert.ToBase64String(Encoding.Default.GetBytes(statement));
+            //statement = @"W3sic3RhdGVtZW50djEiOlt7ImZpZWxkIjoiREVTQ1JJUFRJT04iLCJvcGVyYXRvciI6Imxpa2UiLCJmaWVsZGxpdGVyYWwiOiIlbWFydGklIiwidHlwZSI6InRleHQiLCJjb25uZWN0b3IiOiJhbmQifSx7ImZpZWxkIjoiUFJJQ0VXSVRIVEFYIiwib3BlcmF0b3IiOiI+PSIsImZpZWxkbGl0ZXJhbCI6IicwLjAxJyIsInR5cGUiOiJudW1lcmljIiwiY29ubmVjdG9yIjoiYW5kIn0seyJmaWVsZCI6IlBSSUNFV0lUSFRBWCIsIm9wZXJhdG9yIjoiPD0iLCJmaWVsZGxpdGVyYWwiOiInMTAwMCciLCJ0eXBlIjoibnVtZXJpYyIsImNvbm5lY3RvciI6IiJ9XX1d";
+            // statement = @"W3sic3RhdGVtZW50djEiOlt7ImZpZWxkIjoiREVTQ1JJUFRJT04iLCJvcGVyYXRvciI6Imxpa2UiLCJmaWVsZGxpdGVyYWwiOiIlJSIsInR5cGUiOiJ0ZXh0IiwiY29ubmVjdG9yIjoiYW5kIn0seyJmaWVsZCI6IlBSSUNFV0lUSFRBWCIsIm9wZXJhdG9yIjoiPj0iLCJmaWVsZGxpdGVyYWwiOiInMC4wMSciLCJ0eXBlIjoibnVtZXJpYyIsImNvbm5lY3RvciI6ImFuZCJ9LHsiZmllbGQiOiJQUklDRVdJVEhUQVgiLCJvcGVyYXRvciI6Ijw9IiwiZmllbGRsaXRlcmFsIjoiJzEwMDAnIiwidHlwZSI6Im51bWVyaWMiLCJjb25uZWN0b3IiOiIifV19XQ==";
+            //string de la url del método de llamada
+            //https://riews.reinfoempresa.com:8443/RIEWS/webapi/PrivateServices/articles1
+            string request2 = urlPath + "/RIEWS/webapi/PrivateServices/articles2W";
+            //creamos un webRequest con el tipo de método.
+            WebRequest webRequest = WebRequest.Create(request2);
+            //definimos el tipo de webrequest al que llamaremos
+            webRequest.Method = "POST";
+            //definimos content\
+            webRequest.ContentType = "application/json; charset=utf-8";
+            //cargamos los datos a enviar
+            using (var streamWriter = new System.IO.StreamWriter(webRequest.GetRequestStream()))
+            {
+                //string json = "{\"token\":\"" + token + "\",\"ipbase64\":\"" + laip +"}";
+                string json = "{\"token\":\"" + _sesionToken + "\",\"filter\":\"" + statement + "\",\"orderby\":\"" + order + "\",\"initrec\":\"" + init + "\",\"maxrecs\":\"" + (init+size) + "\",\"ipbase64\":\"" + laip + "\"}";
+                streamWriter.Write(json.ToString());
+                //"  "
+            }
+            //obtenemos la respuesta del servidor
+            var httpResponse = (HttpWebResponse)webRequest.GetResponse();
+            //leemos la respuesta y la tratamos
+            using (var streamReader = new System.IO.StreamReader(httpResponse.GetResponseStream()))
+            {
+                var result2 = streamReader.ReadToEnd();
+                //traducimos el resultado
+                // result = JsonSerializer.Deserialize<DataCollectionSingle<producto>>(result2);
+                result = JsonConvert.DeserializeObject<DataCollection<producto>>(result2);
+            }
+            //
+            //if (_area == null)
+            //{
+            //    _area = new resultList();
+            //    _area.result = new List<result>();
+            //    _area.result[0].areaname = "vacia";
+            //}
+
+            return result;
+        }
+
         public string GetIP()
         {
             return System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(HttpContext.Features.Get<IHttpConnectionFeature>()?.RemoteIpAddress?.ToString()));

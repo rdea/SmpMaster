@@ -112,13 +112,13 @@ namespace SimplCommerce.Module.ShoppingCart.Areas.ShoppingCart.Controllers
             var model = new AddToCartResult(_currencyService)
             {
                 CartItemCount = int.Parse(carrito.totallines),
-                CartAmount = decimal.Parse(carrito.totaltopay)
+                CartAmount = decimal.Parse(carrito.totaltopay.Replace(".", ","))
             };
             //tenemos que recuperar los datos de la ultima linea añadida
             var articulo = RecuperaArtículo(GetIP(), GetSession(), productId);
             model.ProductName = articulo.result.description;
             model.ProductImage = articulo.result.imagesmall;
-            model.ProductPrice = decimal.Parse(articulo.result.pricewithtax);
+            model.ProductPrice = decimal.Parse(articulo.result.pricewithtax.Replace(".", ","));
             //ponemos 1 pode defecto mientras no completamos el siguiente paso
             model.Quantity = 1;
             //leemos la cantidad de la ultima linea
@@ -592,12 +592,12 @@ namespace SimplCommerce.Module.ShoppingCart.Areas.ShoppingCart.Controllers
                 _ = int.TryParse(arti.result.stocks, out sta);
                 civ.ProductStockQuantity = decimal.ToInt32(decimal.Parse(arti.result.stocks));
                 civ.ProductName = ln.description;
-                civ.ProductPrice = decimal.Parse(ln.pricewithtax);
+                civ.ProductPrice = decimal.Parse(ln.pricewithtax.Replace(".", ","));
                 civ.IsProductAvailabeToOrder = true;
                 civ.ProductStockTrackingIsEnabled = false;
                 //Core.Models.Media pti = new ProductThumbnail().;
                 civ.ProductImage = ln.imagesmall;
-                civ.Quantity = decimal.ToInt32(decimal.Parse(ln.quantity));
+                civ.Quantity = decimal.ToInt32(decimal.Parse(ln.quantity.Replace(".", ",")));
 
 
                 //        Id = x.Id,
@@ -612,7 +612,7 @@ namespace SimplCommerce.Module.ShoppingCart.Areas.ShoppingCart.Controllers
 
                 cartVm.Items.Add(civ);
             }
-            cartVm.SubTotal = decimal.Parse(blc.totalwithtax);
+            cartVm.SubTotal = decimal.Parse(blc.totalwithtax.Replace(".", ","));
             cartVm.Discount = 0;
             return cartVm;
             //Datos esperados, los mismos que devuelve await _cartService.GetActiveCartDetails(currentUser.Id);

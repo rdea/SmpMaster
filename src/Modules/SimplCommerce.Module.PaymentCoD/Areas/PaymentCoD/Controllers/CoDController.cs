@@ -53,7 +53,7 @@ namespace SimplCommerce.Module.PaymentCoD.Areas.PaymentCoD.Controllers
             foreach (CartItemVm ci in cart.Items)
             {
                 var p = RecuperaArtículo(GetIP(), GetSession(), ci.ProductId);
-                ci.ProductPrice = decimal.Parse(p.result.pricewithtax);
+                ci.ProductPrice = decimal.Parse(p.result.pricewithtax.Replace(".", ","));
                 ci.ProductName = p.result.description;
                 totalcarrito += (ci.ProductPrice * ci.Quantity);
             }

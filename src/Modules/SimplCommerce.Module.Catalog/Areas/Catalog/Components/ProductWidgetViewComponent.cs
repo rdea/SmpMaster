@@ -147,7 +147,7 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Components
                 _ = int.TryParse(p.stocks, out r);
                 tm.StockQuantity = r;
                 decimal pr = 0;
-                 pr = decimal.Parse(p.pricewithtax ); 
+                 pr = decimal.Parse(p.pricewithtax.Replace(".",",") ); 
                 tm.Price = pr;
                 tm.ReviewsCount = int.Parse(p.likeothers);
                 tm.IsAllowToOrder = true;

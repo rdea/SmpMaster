@@ -118,7 +118,7 @@ namespace SimplCommerce.Module.Orders.Areas.Orders.Controllers
                 _ = int.TryParse(arti.result.stocks, out sta);
                 civ.Product = new Catalog.Models.Product();
                 civ.Product.Name = ln.description;
-                civ.Product.Price = decimal.Parse(ln.pricewithtax);
+                civ.Product.Price = decimal.Parse(ln.pricewithtax.Replace(".", ","));
                 civ.Product.Name= ln.description; 
                 civ.Quantity = decimal.ToInt32(decimal.Parse(ln.quantity));
                 cartVm.Items.Add(civ);
@@ -341,7 +341,7 @@ namespace SimplCommerce.Module.Orders.Areas.Orders.Controllers
                     foreach(CartItem ci in cart.Items)
                     {
                         var p = RecuperaArtículo(GetIP(), GetSession(), ci.ProductId);
-                        totalcart += (decimal.Parse(p.result.pricewithtax) * ci.Quantity);
+                        totalcart += (decimal.Parse(p.result.pricewithtax.Replace(".", ",")) * ci.Quantity);
                     }
                     if(totalcart != totalcarrito)
                     {

@@ -249,7 +249,7 @@
     <script simpl-append-version="true" src="~/lib/matchheight/jquery.matchHeight.js"></script>
     <script simpl-append-version="true" src="~/lib/toastr/build/toastr.min.js"></script>
     <script simpl-append-version="true" src="~/lib/bootstrap-star-rating/js/star-rating.js"></script>
-    @if(CultureInfo.CurrentCulture.Name != SimplCommerce.Infrastructure.GlobalConfiguration.DefaultCulture)
+    @if (CultureInfo.CurrentCulture.Name != SimplCommerce.Infrastructure.GlobalConfiguration.DefaultCulture)
     {
         <script simpl-append-version="true" src="~/lib/bootstrap-star-rating/js/locales/@(CultureInfo.CurrentCulture.Name).js"></script>
     }
@@ -263,5 +263,14 @@
     @RenderSection("scripts", required: false)
 
     <partial name="_AnalyticsScript" />
+    <div class="container-fluid body-content">
+        <div ui-view></div>
+        <hr />
+        <footer>
+
+            <p class="pull-left">&copy; @DateTime.Now.Year - SimplCommerce</p>
+            <p class="pull-right">Powered by <a href="http://www.SimplCommerce.com"><strong>SimplCommerce</strong></a></p>
+        </footer>
+    </div>
 </body>
 </html>

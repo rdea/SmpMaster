@@ -229,6 +229,60 @@ namespace SimplCommerce.Module.Core.Areas.Core.Controllers
 
             return result;
         }
+        public sesion GetPin(string laip, string token, string user)
+        {
+            var result = new sesion();
+
+            //resultList _area;
+            // string token = GetToken(laip).activeToken;
+            //string de url principal
+            string urlPath = "https://riews.reinfoempresa.com:8443";
+            string usuario = "";
+            //string de la url del método de llamada
+            string request2 = urlPath + "/RIEWS/webapi/PrivateServices/getMyPinW";
+            //creamos un webRequest con el tipo de método.
+            WebRequest webRequest = WebRequest.Create(request2);
+            //definimos el tipo de webrequest al que llamaremos
+            webRequest.Method = "POST";
+            //definimos content\
+            webRequest.ContentType = "application/json; charset=utf-8";
+            //cargamos los datos a enviar
+            using (var streamWriter = new StreamWriter(webRequest.GetRequestStream()))
+            {
+                //$formData = array(
+                //          "codeidentifier" 	=> (string)$nIdentifier,
+                //          "cant" 	      	=> (string)$nCant,
+                //          "long" 		=> (string)$nLong,
+                //          "width" 		=> (string)$nWidth,
+                //          "thick" 		=> (string)$nThick,
+                //          "token" 		=> unserializeObj($_SESSION["_ObjSession"])->ActualToken,
+                //          "ipbase64" 	=> $_SESSION["_IpAddressSession"]
+                //         );
+
+                string json = "{\"token\":\"" + token + "\",\"ipbase64\":\"" + laip + "\",\"user\":\""+usuario+"\"}";
+                streamWriter.Write(json.ToString());
+                //"  "
+            }
+            //obtenemos la respuesta del servidor
+            var httpResponse = (HttpWebResponse)webRequest.GetResponse();
+            //leemos la respuesta y la tratamos
+            using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
+            {
+                var result2 = streamReader.ReadToEnd();
+                //traducimos el resultado
+                // result = JsonSerializer.Deserialize<DataCollectionSingle<producto>>(result2);
+                result = JsonConvert.DeserializeObject<sesion>(result2);
+            }
+            //
+            //if (_area == null)
+            //{
+            //    _area = new resultList();
+            //    _area.result = new List<result>();
+            //    _area.result[0].areaname = "vacia";
+            //}
+
+            return result;
+        }
 
         //
         // GET: /Account/Register
@@ -414,6 +468,12 @@ namespace SimplCommerce.Module.Core.Areas.Core.Controllers
         {
             if (ModelState.IsValid)
             {
+                //pin
+                var result = GetPin(GetIP(), GetSession(), model.Email);
+                if (result.status == "OK")
+                {
+                    string s = "mola";
+                }
                 var user = await _userManager.FindByNameAsync(model.Email);
                 if (user == null || !(await _userManager.IsEmailConfirmedAsync(user)))
                 {

@@ -295,7 +295,7 @@
 
 @await Component.InvokeAsync("ProductRecentlyViewed", new { productId = Model.Id })
 
-<div>
+@*<div>
     <h3>@Localizer["Customer reviews"]</h3>
     @await Component.InvokeAsync("Review", new { entityId = Model.Id, entityTypeId = "Product" })
 </div>
@@ -303,7 +303,7 @@
 <div>
     <h3>@Localizer["Customer comments"]</h3>
     @await Component.InvokeAsync("Comment", new { entityId = Model.Id, entityTypeId = "Product" })
-</div>
+</div>*@
 
 @section scripts {
     <partial name="_ValidationScriptsPartial" />

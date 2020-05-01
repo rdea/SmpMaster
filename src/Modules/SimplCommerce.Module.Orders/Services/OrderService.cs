@@ -231,7 +231,7 @@ namespace SimplCommerce.Module.Orders.Services
                     {
                         ci.Product = new Catalog.Models.Product();
                     }
-                    ci.Product.Price = decimal.Parse(p.result.pricewithtax);
+                    ci.Product.Price = decimal.Parse(p.result.pricewithtax.Replace(".", ","));
                     ci.Product.Name = p.result.description;
                     ci.Product.Slug = ci.Product.Name.Replace(" ", "-") + "-" + ci.ProductId;
                     totalcarrito += (ci.Product.Price * ci.Quantity);
@@ -246,6 +246,10 @@ namespace SimplCommerce.Module.Orders.Services
                 if (orderc.status == "OK")
                 {
                     var r = "hola";
+                }
+                else if (orderc.status == "855")
+                { 
+
                 }
             }
             return resultado;

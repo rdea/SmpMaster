@@ -17,6 +17,7 @@ using CRM.Models;
 using Microsoft.AspNetCore.Http.Features;
 using System.Net;
 using System.IO;
+using SimplCommerce.Module.Core.Models;
 
 namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
 {
@@ -30,12 +31,18 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
         private readonly IProductPricingService _productPricingService;
         private readonly IContentLocalizationService _contentLocalizationService;
         private readonly ICurrencyService _currencyService;
+        private readonly IRepository<Entity> _entityRepository;
+
+        private readonly IRepositoryWithTypedId<EntityType, string> _entityTypeRepository;
+
         public ProductController(IRepository<Product> productRepository,
             IMediaService mediaService,
             IMediator mediator,
             IProductPricingService productPricingService,
             IContentLocalizationService contentLocalizationService,
-            ICurrencyService currencyService)
+            ICurrencyService currencyService,
+            IRepository<Entity> entityRepository,
+            IRepositoryWithTypedId<EntityType, string> entityTypeRepository)
         {
             _productRepository = productRepository;
             _mediaService = mediaService;
@@ -43,6 +50,8 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
             _productPricingService = productPricingService;
             _contentLocalizationService = contentLocalizationService;
             _currencyService = currencyService;
+            _entityRepository = entityRepository;
+            _entityTypeRepository = entityTypeRepository;
         }
 
         [HttpGet("product/product-overview")]
@@ -117,7 +126,7 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
             model.RatingAverage = int.Parse(articulo.result.likeothers);
 
             model.CalculatedProductPrice = new CalculatedProductPrice(_currencyService);
-                model.CalculatedProductPrice.Price = decimal.Parse(articulo.result.pricewithtax);
+                model.CalculatedProductPrice.Price = decimal.Parse(articulo.result.pricewithtax.Replace(".",","));
 
             MapProductImagesToArticleVm(articulo.result, model);
             return View(model);
@@ -255,25 +264,71 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
 
         private void MapRelatedProductToProductVm(Product product, ProductDetail model)
         {
-            var publishedProductLinks = product.ProductLinks.Where(x => x.LinkedProduct.IsPublished && (x.LinkType == ProductLinkType.Related || x.LinkType == ProductLinkType.CrossSell));
-            foreach (var productLink in publishedProductLinks)
+            var Prodcrossell = Crosssell(GetIP(), GetSession(), product.Id);
+            foreach (var productcr in Prodcrossell.result)
             {
-                var linkedProduct = productLink.LinkedProduct;
-                var productThumbnail = ProductThumbnail.FromProduct(linkedProduct);
-                productThumbnail.Name = _contentLocalizationService.GetLocalizedProperty(nameof(Product), productThumbnail.Id, nameof(product.Name), productThumbnail.Name);
-                productThumbnail.ThumbnailUrl = _mediaService.GetThumbnailUrl(linkedProduct.ThumbnailImage);
-                productThumbnail.CalculatedProductPrice = _productPricingService.CalculateProductPrice(linkedProduct);
+                    ViewModels.ProductThumbnail tm = new ProductThumbnail();
+                    tm.Id = long.Parse(productcr.identifier);
+                    tm.Name = productcr.description;
+                    tm.ThumbnailUrl = productcr.imagelarge;
+                    decimal pr = 0;
+                    pr = decimal.Parse(productcr.pricewithtax.Replace(".",","));
+                    tm.Price = pr;
+                    tm.Slug = tm.Name.Replace(" ", "-") + "-" + tm.Id;
+                    Core.Models.Media pti = new ProductThumbnail().ThumbnailImage;
+                    tm.ThumbnailUrl = _mediaService.GetThumbnailUrl(pti);
+                    tm.ThumbnailUrl = _mediaService.GetURL(productcr.imagemedium);
 
-                if (productLink.LinkType == ProductLinkType.Related)
-                {
-                    model.RelatedProducts.Add(productThumbnail);
-                }
+                    //tm.CalculatedProductPrice(p);
+                    //tm.CalculatedProductPrice = _productPricingService.CalculateProductPrice((decimal.Parse(p.pricewithtax)));
+                    tm.CalculatedProductPrice = _productPricingService.CalculateProductPrice(tm);
+                    model.CrossSellProducts.Add(tm);
+                    model.RelatedProducts.Add(tm);
+                    //añadimos a la tabla slug si no existe
+                    var entity = _entityRepository
+                    .Query()
+                    .Include(x => x.EntityType)
+                    .FirstOrDefault(x => x.Slug == tm.Slug);
+                    if (entity == null)
+                    {
+                        Entity en = new Entity();
 
-                if (productLink.LinkType == ProductLinkType.CrossSell)
-                {
-                    model.CrossSellProducts.Add(productThumbnail);
-                }
+                        en.EntityId = (long)tm.Id;
+                        en.Name = tm.Name;
+                        en.Slug = tm.Slug;
+                        var enType = _entityTypeRepository.Query().FirstOrDefault(x => x.Id == "Product");
+                        en.EntityType = enType;
+
+                        //en.EntityType = (EntityType)enType;
+                        //en.EntityType = new EntityType("Product");
+                        //en.EntityType.AreaName = "Catalog";
+                        //en.EntityType.IsMenuable = false;
+                        //en.EntityType.RoutingController = "Product";
+                        //en.EntityType.RoutingAction = "ProductDetail";
+                        _entityRepository.Add(en);
+                        _entityRepository.SaveChanges();
+                    }
             }
+            //codigo origen
+            //var publishedProductLinks = product.ProductLinks.Where(x => x.LinkedProduct.IsPublished && (x.LinkType == ProductLinkType.Related || x.LinkType == ProductLinkType.CrossSell));
+            //foreach (var productLink in publishedProductLinks)
+            //{
+            //    var linkedProduct = productLink.LinkedProduct;
+            //    var productThumbnail = ProductThumbnail.FromProduct(linkedProduct);
+            //    productThumbnail.Name = _contentLocalizationService.GetLocalizedProperty(nameof(Product), productThumbnail.Id, nameof(product.Name), productThumbnail.Name);
+            //    productThumbnail.ThumbnailUrl = _mediaService.GetThumbnailUrl(linkedProduct.ThumbnailImage);
+            //    productThumbnail.CalculatedProductPrice = _productPricingService.CalculateProductPrice(linkedProduct);
+
+            //    if (productLink.LinkType == ProductLinkType.Related)
+            //    {
+            //        model.RelatedProducts.Add(productThumbnail);
+            //    }
+
+            //    if (productLink.LinkType == ProductLinkType.CrossSell)
+            //    {
+            //        model.CrossSellProducts.Add(productThumbnail);
+            //    }
+            //}
         }
         public string GetIP()
         {
@@ -326,6 +381,54 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
                 //traducimos el resultado
                // result = JsonSerializer.Deserialize<DataCollectionSingle<producto>>(result2);
                  result = JsonConvert.DeserializeObject<DataCollectionSingle<producto>>(result2);
+            }
+            //
+            //if (_area == null)
+            //{
+            //    _area = new resultList();
+            //    _area.result = new List<result>();
+            //    _area.result[0].areaname = "vacia";
+            //}
+
+            return result;
+        }
+        public DataCollection<producto> Crosssell(string laip, string _sesionToken, long identificador)
+        {
+            var result = new DataCollection<producto>();
+
+            //resultList _area;
+            // string token = GetToken(laip).activeToken;
+            //string de url principal
+            string urlPath = "https://riews.reinfoempresa.com:8443";
+            //string codeidentifier = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(identificador.ToString()));
+            string codeidentifier = identificador.ToString();
+
+            //string de la url del método de llamada
+            //https://riews.reinfoempresa.com:8443/RIEWS/webapi/PrivateServices/articles1
+            string request2 = urlPath + "/RIEWS/webapi/PrivateServices/articles11W";
+            //creamos un webRequest con el tipo de método.
+            WebRequest webRequest = WebRequest.Create(request2);
+            //definimos el tipo de webrequest al que llamaremos
+            webRequest.Method = "POST";
+            //definimos content\
+            webRequest.ContentType = "application/json; charset=utf-8";
+            //cargamos los datos a enviar
+            using (var streamWriter = new StreamWriter(webRequest.GetRequestStream()))
+            {
+                //string json = "{\"token\":\"" + token + "\",\"ipbase64\":\"" + laip +"}";
+                string json = "{\"token\":\"" + _sesionToken + "\",\"ipbase64\":\"" + laip + "\",\"codeidentifier\":\"" + codeidentifier + "\"}";
+                streamWriter.Write(json.ToString());
+                //"  "
+            }
+            //obtenemos la respuesta del servidor
+            var httpResponse = (HttpWebResponse)webRequest.GetResponse();
+            //leemos la respuesta y la tratamos
+            using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
+            {
+                var result2 = streamReader.ReadToEnd();
+                //traducimos el resultado
+                // result = JsonSerializer.Deserialize<DataCollectionSingle<producto>>(result2);
+                result = JsonConvert.DeserializeObject<DataCollection<producto>>(result2);
             }
             //
             //if (_area == null)
