@@ -45,10 +45,10 @@
                     </div>
                 </div>
                 <p>
-                    <a asp-action="Register" asp-route-returnurl="@ViewData["ReturnUrl"]">@Localizer["Register as a new user?"]</a>
+                    <a asp-action="Register" asp-route-returnurl="@ViewData["ReturnUrl"]" class="btn btn-primary">@Localizer["Register as a new user?"]</a>
                 </p>
                 <p>
-                    <a asp-action="ForgotPassword">@Localizer["Forgot your password?"]</a>
+                    <a asp-action="ForgotPassword" class="btn btn-secondary">@Localizer["Forgot your password?"]</a>
                 </p>
             </form>
         </section>

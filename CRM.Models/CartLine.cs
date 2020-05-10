@@ -79,7 +79,7 @@ namespace CRM.Models
         public string widthmedline { get; set; }
         public string longmedline { get; set; }
         public string quantity { get; set; }
-        public string line { get; set; }
+        public int line { get; set; }
         public string user { get; set; }
 
 

@@ -107,20 +107,35 @@ namespace SimplCommerce.Module.ShoppingCart.Areas.ShoppingCart.Controllers
             //recuperamos los datos de Previsualizacion del carrito.
             var carrito = RecuperaTotalCarrito(GetIP(), GetSession());
            // var currentUser = await _workContext.GetCurrentUser();
-          //  var cart = await _cartService.GetActiveCartDetails(currentUser.Id);
-
+          //  var cart = await _cartService.GetActiveCartDetails(currentUser.Id);          
             var model = new AddToCartResult(_currencyService)
             {
                 CartItemCount = int.Parse(carrito.totallines),
-                CartAmount = decimal.Parse(carrito.totaltopay.Replace(".", ","))
+                CartAmount = decimal.Parse(carrito.totaltopay.Replace(".", ","))                
             };
-            //tenemos que recuperar los datos de la ultima linea añadida
-            var articulo = RecuperaArtículo(GetIP(), GetSession(), productId);
-            model.ProductName = articulo.result.description;
-            model.ProductImage = articulo.result.imagesmall;
-            model.ProductPrice = decimal.Parse(articulo.result.pricewithtax.Replace(".", ","));
+
+            var linea = RecuperaLineasCarrito(GetIP(), GetSession(), carrito.totallines);
+            model.ProductName = linea.result.description;
+            model.ProductImage = linea.result.imagesmall;
+            model.ProductPrice = decimal.Parse(linea.result.pricewithtax.Replace(".", ","));
+                
+            model.Quantity = linea.result.quantity;
+            string[] cntidad = linea.result.quantity.Split(".");
+            int p = int.Parse(cntidad[0].ToString());
             //ponemos 1 pode defecto mientras no completamos el siguiente paso
-            model.Quantity = 1;
+            int t = 0;
+             bool s = int.TryParse(linea.result.quantity.Replace(".",","), out t);
+            decimal d = decimal.Parse(linea.result.quantity.Replace(".", ","));
+
+            //model.Quantity = p;//Int32.Parse(d.ToString());
+
+            ////////tenemos que recuperar los datos de la ultima linea añadida
+            //////var articulo = RecuperaArtículo(GetIP(), GetSession(), productId);
+            //////model.ProductName = articulo.result.description;
+            //////model.ProductImage = articulo.result.imagesmall;
+            //////model.ProductPrice = decimal.Parse(articulo.result.pricewithtax.Replace(".", ","));
+            ////////ponemos 1 pode defecto mientras no completamos el siguiente paso
+            //////model.Quantity = 1;
             //leemos la cantidad de la ultima linea
             //model.Quantity = addedProduct.Quantity;
             // codigo origen
@@ -160,35 +175,36 @@ namespace SimplCommerce.Module.ShoppingCart.Areas.ShoppingCart.Controllers
         [HttpPost("cart/update-item-quantity")]
         public async Task<IActionResult> UpdateQuantity([FromBody] CartQuantityUpdate model)
         {
-            var currentUser = await _workContext.GetCurrentUser();
-            var cart = await _cartService.GetActiveCart(currentUser.Id);
+            ModificaLinea(GetIP(), GetSession(), model.CartItemId, model.Quantity);
+            //var currentUser = await _workContext.GetCurrentUser();
+            //var cart = await _cartService.GetActiveCart(currentUser.Id);
 
-            if (cart == null)
-            {
-                return NotFound();
-            }
+            //if (cart == null)
+            //{
+            //    return NotFound();
+            //}
 
-            if (cart.LockedOnCheckout)
-            {
-                return CreateCartLockedResult();
-            }
+            //if (cart.LockedOnCheckout)
+            //{
+            //    return CreateCartLockedResult();
+            //}
 
-            var cartItem = _cartItemRepository.Query().Include(x => x.Product).FirstOrDefault(x => x.Id == model.CartItemId && x.Cart.CreatedById == currentUser.Id);
-            if (cartItem == null)
-            {
-                return NotFound();
-            }
+            //var cartItem = _cartItemRepository.Query().Include(x => x.Product).FirstOrDefault(x => x.Id == model.CartItemId && x.Cart.CreatedById == currentUser.Id);
+            //if (cartItem == null)
+            //{
+            //    return NotFound();
+            //}
 
-            if(model.Quantity > cartItem.Quantity) // always allow user to descrease the quality
-            {
-                if (cartItem.Product.StockTrackingIsEnabled && cartItem.Product.StockQuantity < model.Quantity)
-                {
-                    return Ok(new { Error = true, Message = $"There are only {cartItem.Product.StockQuantity} items available for {cartItem.Product.Name}" });
-                }
-            }
+            //if(model.Quantity > cartItem.Quantity) // always allow user to descrease the quality
+            //{
+            //    if (cartItem.Product.StockTrackingIsEnabled && cartItem.Product.StockQuantity < model.Quantity)
+            //    {
+            //        return Ok(new { Error = true, Message = $"There are only {cartItem.Product.StockQuantity} items available for {cartItem.Product.Name}" });
+            //    }
+            //}
 
-            cartItem.Quantity = model.Quantity;
-            _cartItemRepository.SaveChanges();
+            //cartItem.Quantity = model.Quantity;
+            //_cartItemRepository.SaveChanges();
 
             return await List();
         }
@@ -236,28 +252,31 @@ namespace SimplCommerce.Module.ShoppingCart.Areas.ShoppingCart.Controllers
         [HttpPost("cart/remove-item")]
         public async Task<IActionResult> Remove([FromBody] long itemId)
         {
-            var currentUser = await _workContext.GetCurrentUser();
-            var cart = await _cartService.GetActiveCart(currentUser.Id);
-            if (cart == null)
-            {
-                return NotFound();
-            }
-
-            if (cart.LockedOnCheckout)
-            {
-                return CreateCartLockedResult();
-            }
-
-            var cartItem = _cartItemRepository.Query().FirstOrDefault(x => x.Id == itemId && x.Cart.CreatedById == currentUser.Id);
-            if (cartItem == null)
-            {
-                return NotFound();
-            }
-
-            _cartItemRepository.Remove(cartItem);
-            _cartItemRepository.SaveChanges();
-
+            BorraLinea(GetIP(), GetSession(), itemId);
             return await List();
+
+            //var currentUser = await _workContext.GetCurrentUser();
+            //var cart = await _cartService.GetActiveCart(currentUser.Id);
+            //if (cart == null)
+            //{
+            //    return NotFound();
+            //}
+
+            //if (cart.LockedOnCheckout)
+            //{
+            //    return CreateCartLockedResult();
+            //}
+
+            //var cartItem = _cartItemRepository.Query().FirstOrDefault(x => x.Id == itemId && x.Cart.CreatedById == currentUser.Id);
+            //if (cartItem == null)
+            //{
+            //    return NotFound();
+            //}
+
+            //_cartItemRepository.Remove(cartItem);
+            //_cartItemRepository.SaveChanges();
+
+            //return await List();
         }
 
         private IActionResult CreateCartLockedResult()
@@ -471,6 +490,97 @@ namespace SimplCommerce.Module.ShoppingCart.Areas.ShoppingCart.Controllers
 
           
         }
+        public void BorraLinea(string laip, string _sesionToken, long identificador)
+        {
+            var result = new DataCollectionSingle<producto>();
+
+            //string de url principal
+            string urlPath = "https://riews.reinfoempresa.com:8443";
+            string codeidentifier = identificador.ToString();
+
+            //string de la url del método de llamada
+            //https://riews.reinfoempresa.com:8443/RIEWS/webapi/PrivateServices/articles1
+            string request2 = urlPath + "/RIEWS/webapi/PrivateServices/basketline4W";
+            //creamos un webRequest con el tipo de método.
+            WebRequest webRequest = WebRequest.Create(request2);
+            //definimos el tipo de webrequest al que llamaremos
+            webRequest.Method = "POST";
+            //definimos content\
+            webRequest.ContentType = "application/json; charset=utf-8";
+            //cargamos los datos a enviar
+            using (var streamWriter = new StreamWriter(webRequest.GetRequestStream()))
+            {
+                //string json = "{\"token\":\"" + token + "\",\"ipbase64\":\"" + laip +"}";
+                string json = "{\"token\":\"" + _sesionToken + "\",\"ipbase64\":\"" + laip + "\",\"line\":\"" + codeidentifier + "\"}";
+                streamWriter.Write(json.ToString());
+                //"  "
+            }
+            //obtenemos la respuesta del servidor
+            var httpResponse = (HttpWebResponse)webRequest.GetResponse();
+            //leemos la respuesta y la tratamos
+            using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
+            {
+                var result2 = streamReader.ReadToEnd();
+                //traducimos el resultado
+                result = JsonConvert.DeserializeObject<DataCollectionSingle<producto>>(result2);
+                //result = JsonConvert.DeserializeObject<BasketlinestotalRecibe>(result2);
+            }
+            //
+            //if (_area == null)
+            //{
+            //    _area = new resultList();
+            //    _area.result = new List<result>();
+            //    _area.result[0].areaname = "vacia";
+            //}
+
+
+        }
+        public void ModificaLinea(string laip, string _sesionToken, long identificador, int quant)
+        {
+            var result = new DataCollectionSingle<producto>();
+
+            //string de url principal
+            string urlPath = "https://riews.reinfoempresa.com:8443";
+            string codeidentifier = identificador.ToString();
+            string cantidad = quant.ToString();
+
+            //string de la url del método de llamada
+            //https://riews.reinfoempresa.com:8443/RIEWS/webapi/PrivateServices/articles1
+            string request2 = urlPath + "/RIEWS/webapi/PrivateServices/basketline3W";
+            //creamos un webRequest con el tipo de método.
+            WebRequest webRequest = WebRequest.Create(request2);
+            //definimos el tipo de webrequest al que llamaremos
+            webRequest.Method = "POST";
+            //definimos content\
+            webRequest.ContentType = "application/json; charset=utf-8";
+            //cargamos los datos a enviar
+            using (var streamWriter = new StreamWriter(webRequest.GetRequestStream()))
+            {
+                //string json = "{\"token\":\"" + token + "\",\"ipbase64\":\"" + laip +"}";
+                string json = "{\"token\":\"" + _sesionToken + "\",\"ipbase64\":\"" + laip + "\",\"cant\":\""+ cantidad +"\",\"line\":\"" + codeidentifier + "\"}";
+                streamWriter.Write(json.ToString());
+                //"  "
+            }
+            //obtenemos la respuesta del servidor
+            var httpResponse = (HttpWebResponse)webRequest.GetResponse();
+            //leemos la respuesta y la tratamos
+            using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
+            {
+                var result2 = streamReader.ReadToEnd();
+                //traducimos el resultado
+                result = JsonConvert.DeserializeObject<DataCollectionSingle<producto>>(result2);
+                //result = JsonConvert.DeserializeObject<BasketlinestotalRecibe>(result2);
+            }
+            //
+            //if (_area == null)
+            //{
+            //    _area = new resultList();
+            //    _area.result = new List<result>();
+            //    _area.result[0].areaname = "vacia";
+            //}
+
+
+        }
 
         public DataCollectionSingle<producto> RecuperaLineasCarrito(string laip, string _sesionToken, string linea)
         {
@@ -585,7 +695,7 @@ namespace SimplCommerce.Module.ShoppingCart.Areas.ShoppingCart.Controllers
             foreach (CartLine ln in todas.result)
             {
                 CartItemVm civ = new CartItemVm(_currencyService);
-                civ.Id = long.Parse(ln.line);
+                civ.Id = long.Parse(ln.line.ToString());
                 civ.ProductId = long.Parse(ln.identifier);
                 var arti = RecuperaArtículo(GetIP(), GetSession(), civ.ProductId);
                 int sta=0;
@@ -595,6 +705,7 @@ namespace SimplCommerce.Module.ShoppingCart.Areas.ShoppingCart.Controllers
                 civ.ProductPrice = decimal.Parse(ln.pricewithtax.Replace(".", ","));
                 civ.IsProductAvailabeToOrder = true;
                 civ.ProductStockTrackingIsEnabled = false;
+                civ.linea = ln.line;
                 //Core.Models.Media pti = new ProductThumbnail().;
                 civ.ProductImage = ln.imagesmall;
                 civ.Quantity = decimal.ToInt32(decimal.Parse(ln.quantity.Replace(".", ",")));

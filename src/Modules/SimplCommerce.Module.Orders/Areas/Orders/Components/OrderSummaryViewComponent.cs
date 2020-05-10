@@ -285,7 +285,7 @@ namespace SimplCommerce.Module.Orders.Areas.Orders.Components
             foreach (CartLine ln in todas.result)
             {
                 CartItemVm civ = new CartItemVm(_currencyService);
-                civ.Id = long.Parse(ln.line);
+                civ.Id = long.Parse(ln.line.ToString());
                 civ.ProductId = long.Parse(ln.identifier);
                 var arti = RecuperaArtículo(GetIP(), GetSession(), civ.ProductId);
                 int sta = 0;

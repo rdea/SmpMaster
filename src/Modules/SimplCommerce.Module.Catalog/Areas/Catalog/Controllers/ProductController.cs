@@ -124,7 +124,7 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
             model.Specification = "";// _contentLocalizationService.GetLocalizedProperty(product, nameof(product.Specification), product.Specification),
             model.ReviewsCount = int.Parse(articulo.result.likeothers);//product.ReviewsCount,
             model.RatingAverage = int.Parse(articulo.result.likeothers);
-
+            
             model.CalculatedProductPrice = new CalculatedProductPrice(_currencyService);
                 model.CalculatedProductPrice.Price = decimal.Parse(articulo.result.pricewithtax.Replace(".",","));
 

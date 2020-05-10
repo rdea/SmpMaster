@@ -523,6 +523,15 @@ namespace SimplCommerce.Module.Core.Areas.Core.Controllers
             {
                 return View(model);
             }
+            //solicitar pin
+            //////var misesion = GetPin(GetIP(), GetSession(), model.Email);
+            //////if (misesion.explained == "OK")
+            //////{
+            //////    SetSession(misesion.activeToken);
+            //////}
+            //////return RedirectToAction(nameof(AccountController.ResetPasswordConfirmation), "Account");
+            //////return View();
+            //codigo origen
             var user = await _userManager.FindByNameAsync(model.Email);
             if (user == null)
             {

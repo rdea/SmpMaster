@@ -70,7 +70,7 @@ namespace SimplCommerce.Module.ProductRecentlyViewed.Areas.ProductRecentlyViewed
                     Core.Models.Media pti = new ProductThumbnail().ThumbnailImage;
                     tm.ThumbnailUrl = _mediaService.GetThumbnailUrl(pti);
                     tm.ThumbnailUrl = _mediaService.GetURL(product.imagemedium);
-
+                    
                     //tm.CalculatedProductPrice(p);
                     //tm.CalculatedProductPrice = _productPricingService.CalculateProductPrice((decimal.Parse(p.pricewithtax)));
                     tm.CalculatedProductPrice = _productPricingService.CalculateProductPrice(tm);

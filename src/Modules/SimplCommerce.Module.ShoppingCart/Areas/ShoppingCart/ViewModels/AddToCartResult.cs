@@ -19,7 +19,8 @@ namespace SimplCommerce.Module.ShoppingCart.Areas.ShoppingCart.ViewModels
 
         public string VariationName { get; set; }
 
-        public int Quantity { get; set; }
+        //public int Quantity { get; set; }
+        public string Quantity { get; set; }
 
         public int CartItemCount { get; set; }
 

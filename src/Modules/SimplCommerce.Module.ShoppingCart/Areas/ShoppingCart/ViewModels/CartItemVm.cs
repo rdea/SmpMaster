@@ -37,6 +37,7 @@ namespace SimplCommerce.Module.ShoppingCart.Areas.ShoppingCart.ViewModels
         public decimal Total => Quantity * ProductPrice;
 
         public string TotalString => _currencyService.FormatCurrency(Total);
+        public int linea { get; set; }
 
         public IEnumerable<ProductVariationOption> VariationOptions { get; set; } = new List<ProductVariationOption>();
 

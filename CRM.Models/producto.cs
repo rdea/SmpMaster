@@ -69,6 +69,7 @@ namespace CRM.Models
         public string referencecode { get; set; }
         public string enterprise { get; set; }
         public string specificonditions { get; set; }
+        public string quantity { get; set; }
     }
 
 }
