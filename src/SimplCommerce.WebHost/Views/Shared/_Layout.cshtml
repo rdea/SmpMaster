@@ -31,7 +31,7 @@
             <div class="row">
                 <div class="col-12 col-md-6 col-lg-4 logo">
                     <a asp-area="Core" asp-controller="Home" asp-action="Index">
-                        <img src="~/_content/SimplCommerce.Module.Core/images.jpg" alt="logo"/>
+                        <img src="~/_content/SimplCommerce.Module.Core/images.jpg" alt="logo" />
                         <!--<img alt="SimplCommerce" src="~/modules/core/Logo_SimplCommerce.png" />-->
                     </a>
                 </div>
@@ -58,6 +58,26 @@
     <div class="container body-content clearfix">
         @RenderBody()
     </div>
+
+    @*<div class="col-md-12">
+        <img src="/user-content/compra-segura.jpg" class="rounded mx-auto d-block float-left" alt="Compra segura">
+        <a href="/condiciones-de-uso"></a><img src="/user-content/Se_aceptal_devoluciones_logo.jpg" class="rounded mx-auto d-block float-rigth" alt="devoluciones"></a>
+    </div>*@
+
+    @*<div class="lg_home">
+        <div class="class=" lg_hook_1">
+            <div class="lg_block">
+                <a href="https://ferreteria.soutelana.com/maquinas-para-picar-embutir-y-amasar-carne/2806-picadora-embutidora-garhe-electrica-32-15-hp.html?search_query=picadora83501&amp;results=1"> <img src="https://ferreteria.soutelana.com/modules/lghomeadvertising/views/img/xPicadora,P20Garhe,P20n32-2.jpg.pagespeed.ic.RkPVA3SoQh.webp" alt="Picadora Embutidora GARHE Nº32" title="Picadora Embutidora GARHE Nº32" data-pagespeed-url-hash="3365593457" onload="pagespeed.CriticalImages.checkImageForCriticality(this);"> </a> <span class="title">Picadora Embutidora GARHE Nº32</span> <span class="description"></span> <a class="button" href="https://ferreteria.soutelana.com/maquinas-para-picar-embutir-y-amasar-carne/2806-picadora-embutidora-garhe-electrica-32-15-hp.html?search_query=picadora83501&amp;results=1"> Más info<i class="fa fa-angle-right" aria-hidden="true"></i> </a>
+            </div>         <div class="lg_block"> <a href="https://ferreteria.soutelana.com/desgranadoras-de-maiz-electricas-y-manuales/5789-desgranadora-de-maiz-electrica-de-tubo-ayuma.html?search_query=75602&amp;results=1"> <img src="https://ferreteria.soutelana.com/modules/lghomeadvertising/views/img/xDesgranadora,P20de,P20tubo,P20A.Yuma.jpg.pagespeed.ic.qyNuO97Neo.webp" alt="Desgranadora de maíz  eléctrica de tubo" title="Desgranadora de maíz eléctrica de tubo"> </a> <span class="title">Desgranadora de maíz  eléctrica de tubo</span> <span class="description"></span> <a class="button" href="https://ferreteria.soutelana.com/desgranadoras-de-maiz-electricas-y-manuales/5789-desgranadora-de-maiz-electrica-de-tubo-ayuma.html?search_query=75602&amp;results=1"> Más info<i class="fa fa-angle-right" aria-hidden="true"></i> </a></div>
+            <div class="lg_block">
+                <a href="https://ferreteria.soutelana.com/buscar?controller=search&amp;orderby=position&amp;orderway=desc&amp;search_query=ofertapote&amp;submit_search="> <img src="https://ferreteria.soutelana.com/modules/lghomeadvertising/views/img/xBanner,P20Pote.jpg.pagespeed.ic.t5ELgq2DAA.webp" alt="Pote Gallego" title="Pote Gallego"> </a>
+                <span class="title">Pote Gallego</span> <span class="description"></span> <a class="button" href="https://ferreteria.soutelana.com/buscar?controller=search&amp;orderby=position&amp;orderway=desc&amp;search_query=ofertapote&amp;submit_search="> Más info<i class="fa fa-angle-right" aria-hidden="true"></i> </a>
+            </div>
+        </div>
+
+    </div>*@
+
+
     <div class="footer-content">
         <div class="container">
             <div class="row">
@@ -109,7 +129,7 @@
     <script simpl-append-version="true" src="~/lib/toastr/build/toastr.min.js"></script>
     <script simpl-append-version="true" src="~/lib/bootstrap-star-rating/js/star-rating.js"></script>
     <script simpl-append-version="true" src="~/lib/signalr/dist/browser/signalr.js"></script>
-    @if(CultureInfo.CurrentCulture.Name != SimplCommerce.Infrastructure.GlobalConfiguration.DefaultCulture)
+    @if (CultureInfo.CurrentCulture.Name != SimplCommerce.Infrastructure.GlobalConfiguration.DefaultCulture)
     {
         <script simpl-append-version="true" src="~/lib/bootstrap-star-rating/js/locales/@(CultureInfo.CurrentCulture.Name).js"></script>
     }

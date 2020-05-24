@@ -74,9 +74,9 @@
             </div>
             <ul class="list-inline product-ratings">
                 <li><input type="hidden" value="@Model.RatingAverage" readonly="readonly" class="rating-loading" step="1" data-size="xs" data-show-clear="false" data-show-caption="false" /></li>
-                <li class="product-review-list">
+                @*<li class="product-review-list">
                     <span>(@Model.ReviewsCount) <a href="#reviews">@Localizer["reviews"]</a> | <a href="#addreview"> @Localizer["Add Review"]</a></span>
-                </li>
+                </li>*@
             </ul>
             <div class="product-short-desc">@Html.Raw(Model.ShortDescription)</div>
             @if (Model.HasVariation)
@@ -210,7 +210,7 @@
                         </div>
                         <button type="button" disabled="@(!Model.IsAllowToOrder || (Model.StockTrackingIsEnabled && Model.StockQuantity <= 0))" class="btn btn-lg btn-add-cart">@Localizer["Add to cart"]</button>
                         <div>
-                            <ul class="list-inline add-to-lists">
+                            @*<ul class="list-inline add-to-lists">
                                 <li class="wishlist-in">
                                     <i class="fa fa-heart"></i>
                                     @if (SignInManager.IsSignedIn(User))
@@ -226,11 +226,16 @@
                                     <i class="fa fa-exchange"></i>
                                     <a href="#" class="add-to-comparison">@Localizer["Add to Compare"]</a>
                                 </li>
-                            </ul>
+                            </ul>*@
                         </div>
                     </form>
                 </div>
             }
+        </div>
+
+        <div class="col-md-12">
+            <img src="/user-content/compra-segura.jpg" class="rounded mx-auto d-block float-left" alt="Compra segura">
+            <a href="/condiciones-de-uso"></a><img src="/user-content/Se_aceptal_devoluciones_logo.jpg" class="rounded mx-auto d-block float-rigth" alt="devoluciones"></a>
         </div>
     </div>
     @if (!string.IsNullOrWhiteSpace(Model.Description))
@@ -264,6 +269,9 @@
         </div>
     }
 </div>
+
+
+
 
 @if (Model.RelatedProducts.Any())
 {

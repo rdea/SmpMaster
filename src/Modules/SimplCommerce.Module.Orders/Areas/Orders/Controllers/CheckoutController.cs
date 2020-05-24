@@ -120,7 +120,7 @@ namespace SimplCommerce.Module.Orders.Areas.Orders.Controllers
                 civ.Product.Name = ln.description;
                 civ.Product.Price = decimal.Parse(ln.pricewithtax.Replace(".", ","));
                 civ.Product.Name= ln.description; 
-                civ.Quantity = decimal.ToInt32(decimal.Parse(ln.quantity));
+                civ.Quantity = decimal.ToInt32(decimal.Parse(ln.quantity.Replace(".", ",")));
                 cartVm.Items.Add(civ);
             }
             
