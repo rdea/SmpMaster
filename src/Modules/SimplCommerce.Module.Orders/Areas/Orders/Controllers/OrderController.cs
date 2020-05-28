@@ -54,14 +54,14 @@ namespace SimplCommerce.Module.Orders.Areas.Orders.Controllers
                         ProductOptions = i.Product.OptionCombinations.Select(o => o.Value)
                     }).ToList()
                 });
-
-            foreach (var item in model2)
-            {
-                foreach (var product in item.OrderItems)
-                {
-                    product.ThumbnailImage = _mediaService.GetMediaUrl(product.ThumbnailImage);
-                }
-            }
+//TODO AQuI FAlla
+            //foreach (var item in model2)
+            //{
+            //    foreach (var product in item.OrderItems)
+            //    {
+            //        product.ThumbnailImage = _mediaService.GetMediaUrl(product.ThumbnailImage);
+            //    }
+            //}
 
             return View(model2);
         }
