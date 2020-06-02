@@ -457,9 +457,41 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
             //string statement = @"[{""statementv1"":[{""field"":""DESCRIPTION"",""operator"":""like"",""fieldliteral"":""%";
             //statement += categoria.Name;
             //statement += @"%"",""type"":""text"",""connector"":""""}]}]";
+            ///varios funcionaba
+            //////string statement = @"[{""statementv1"":[{""field"":""DIVISION"",""operator"":""="",""fieldliteral"":""" + categoria.Division;
+            //////if(categoria.Section > 0)
+            //////{
+            //////    statement += @""",""type"":""numeric"",""connector"":""and""},";
+            //////    statement += @"{""field"":""SECTION"",""operator"":""="",""fieldliteral"":""" + categoria.Section;
+            //////}
+            //////if (soption.MinPrice != null)
+            //////{
+            //////    statement += @""",""type"":""numeric"",""connector"":""and""},";
+            //////    statement += @"{""field"":""PRICEWITHTAX"",""operator"":"">="",""fieldliteral"":""" + soption.MinPrice;
+            //////}
+            //////if (soption.MaxPrice != null)
+            //////{
+            //////    statement += @""",""type"":""numeric"",""connector"":""and""},";
+            //////    statement += @"{""field"":""PRICEWITHTAX"",""operator"":""<="",""fieldliteral"":""" + soption.MaxPrice;
+            //////}
+            //////if (soption.Brand != null)
+            //////{
+            //////    statement += @""",""type"":""numeric"",""connector"":""and""},";
+            //////    statement += @"{""field"":""BRAND"",""operator"":""="",""fieldliteral"":""" + soption.Brand;
+            //////}
 
-            string statement = @"[{""statementv1"":[{""field"":""DIVISION"",""operator"":""="",""fieldliteral"":""" + categoria.Division;
-            if(categoria.Section > 0)
+            ////////statement  += @""",""type"":""numeric"",""connector"":""and""},";
+            ////////statement += @"{""field"":""SUBSECTION"",""operator"":""="",""fieldliteral"":""" + categoria.Subsection;
+            ////////statement += @""",""type"":""numeric"",""connector"":""and""},";
+            ////////statement += @"{""field"":""FAMILY"",""operator"":""="",""fieldliteral"":""" + categoria.Family;
+            ////////statement += @""",""type"":""numeric"",""connector"":""and""},";
+            ////////statement += @"{""field"":""SUBFAMILY"",""operator"":""="",""fieldliteral"":""" + categoria.Subfamily;
+            //////statement += @""",""type"":""numeric"",""connector"":""""}]}]";
+
+            string statement = @"[{""statementv1"":[{""field"":""DESCRIPTION"", ""operator"":""ilike"",""fieldliteral"":""%''%"",""type"":""text"",""connector"":""or""},";
+            statement +=@"{""field"":""DESCRIPTION2"",""operator"":""ilike"",""fieldliteral"":""%''%"",""type"":""text"",""connector"":""""}],""connector"":""AND""},";
+            statement += @"{""statementv1"":[{""field"":""DIVISION"",""operator"":""="",""fieldliteral"":""" + categoria.Division;
+            if (categoria.Section > 0)
             {
                 statement += @""",""type"":""numeric"",""connector"":""and""},";
                 statement += @"{""field"":""SECTION"",""operator"":""="",""fieldliteral"":""" + categoria.Section;
@@ -486,7 +518,10 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
             //statement += @"{""field"":""FAMILY"",""operator"":""="",""fieldliteral"":""" + categoria.Family;
             //statement += @""",""type"":""numeric"",""connector"":""and""},";
             //statement += @"{""field"":""SUBFAMILY"",""operator"":""="",""fieldliteral"":""" + categoria.Subfamily;
-            statement += @""",""type"":""numeric"",""connector"":""""}]}]";
+            statement += @""",""type"":""numeric"",""connector"":""""}],""connector"":""""}]";
+
+
+
             statement = System.Convert.ToBase64String(Encoding.Default.GetBytes(statement));
             //statement = @"W3sic3RhdGVtZW50djEiOlt7ImZpZWxkIjoiREVTQ1JJUFRJT04iLCJvcGVyYXRvciI6Imxpa2UiLCJmaWVsZGxpdGVyYWwiOiIlbWFydGklIiwidHlwZSI6InRleHQiLCJjb25uZWN0b3IiOiJhbmQifSx7ImZpZWxkIjoiUFJJQ0VXSVRIVEFYIiwib3BlcmF0b3IiOiI+PSIsImZpZWxkbGl0ZXJhbCI6IicwLjAxJyIsInR5cGUiOiJudW1lcmljIiwiY29ubmVjdG9yIjoiYW5kIn0seyJmaWVsZCI6IlBSSUNFV0lUSFRBWCIsIm9wZXJhdG9yIjoiPD0iLCJmaWVsZGxpdGVyYWwiOiInMTAwMCciLCJ0eXBlIjoibnVtZXJpYyIsImNvbm5lY3RvciI6IiJ9XX1d";
             // statement = @"W3sic3RhdGVtZW50djEiOlt7ImZpZWxkIjoiREVTQ1JJUFRJT04iLCJvcGVyYXRvciI6Imxpa2UiLCJmaWVsZGxpdGVyYWwiOiIlJSIsInR5cGUiOiJ0ZXh0IiwiY29ubmVjdG9yIjoiYW5kIn0seyJmaWVsZCI6IlBSSUNFV0lUSFRBWCIsIm9wZXJhdG9yIjoiPj0iLCJmaWVsZGxpdGVyYWwiOiInMC4wMSciLCJ0eXBlIjoibnVtZXJpYyIsImNvbm5lY3RvciI6ImFuZCJ9LHsiZmllbGQiOiJQUklDRVdJVEhUQVgiLCJvcGVyYXRvciI6Ijw9IiwiZmllbGRsaXRlcmFsIjoiJzEwMDAnIiwidHlwZSI6Im51bWVyaWMiLCJjb25uZWN0b3IiOiIifV19XQ==";
