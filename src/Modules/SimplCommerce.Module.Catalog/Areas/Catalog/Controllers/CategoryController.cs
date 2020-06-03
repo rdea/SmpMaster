@@ -488,9 +488,9 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
             ////////statement += @"{""field"":""SUBFAMILY"",""operator"":""="",""fieldliteral"":""" + categoria.Subfamily;
             //////statement += @""",""type"":""numeric"",""connector"":""""}]}]";
 
-            string statement = @"[{""statementv1"":[{""field"":""DESCRIPTION"", ""operator"":""ilike"",""fieldliteral"":""%''%"",""type"":""text"",""connector"":""or""},";
-            statement +=@"{""field"":""DESCRIPTION2"",""operator"":""ilike"",""fieldliteral"":""%''%"",""type"":""text"",""connector"":""""}],""connector"":""AND""},";
-            statement += @"{""statementv1"":[{""field"":""DIVISION"",""operator"":""="",""fieldliteral"":""" + categoria.Division;
+            //string statement = @"[{""statementv1"":[{""field"":""DESCRIPTION"", ""operator"":""ilike"",""fieldliteral"":""%''%"",""type"":""text"",""connector"":""or""},";
+            //statement +=@"{""field"":""DESCRIPTION2"",""operator"":""ilike"",""fieldliteral"":""%''%"",""type"":""text"",""connector"":""""}],""connector"":""AND""},";
+           string  statement = @"[{""statementv1"":[{""field"":""DIVISION"",""operator"":""="",""fieldliteral"":""" + categoria.Division;
             if (categoria.Section > 0)
             {
                 statement += @""",""type"":""numeric"",""connector"":""and""},";
@@ -518,7 +518,11 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
             //statement += @"{""field"":""FAMILY"",""operator"":""="",""fieldliteral"":""" + categoria.Family;
             //statement += @""",""type"":""numeric"",""connector"":""and""},";
             //statement += @"{""field"":""SUBFAMILY"",""operator"":""="",""fieldliteral"":""" + categoria.Subfamily;
-            statement += @""",""type"":""numeric"",""connector"":""""}],""connector"":""""}]";
+            //      statement += @""",""type"":""numeric"",""connector"":""""}],""connector"":""""}]";
+                  statement += @""",""type"":""numeric"",""connector"":""""}]}]";
+
+            statement = @"[{""statementv1"":[{""field"":""DIVISION"",""operator"":""="",""fieldliteral"":""1"",""type"":""numeric"",""connector"":""}][{""statementv1"":[{""field"":""DESCRIPTION"",""operator"":""ilike"",""fieldliteral"":""%''%"",""type"":""text"",""connector"":""or""},{""field"":""DESCRIPTION2"",""operator"":""ilike"",""fieldliteral"":""%''%"",""type"":""text"",""connector"":""}],""connector"":""AND""},{""statementv1"":[{""field"":""PRICEWITHTAX"",""operator"":"">="",""fieldliteral"":""0"",""type"":""numeric"",""connector"":""and""},{""field"":""PRICEWITHTAX"",""operator"":""<="",""fieldliteral"":""99999"", ""type"":""numeric"",""connector"":""}],""connector"":""}]";
+
 
 
 
