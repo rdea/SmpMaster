@@ -245,11 +245,16 @@ namespace SimplCommerce.Module.Search.Areas.Search.Controllers
 
             //esta sentencia funciona
             //[{"statementv1":[{"field":"DESCRIPTION","operator":"like","fieldliteral":"%%","type":"text","connector":"and"},{"field":"PRICEWITHTAX","operator":">=","fieldliteral":"'0.01'","type":"numeric","connector":"and"},{"field":"PRICEWITHTAX","operator":"<=","fieldliteral":"'1000'","type":"numeric","connector":""}]}]
-            
+
             // string codeidentifier = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(identificador.ToString()));
+            //cnsulta origen antes funcionaba
+            //string statement = @"[{""statementv1"":[{""field"":""DESCRIPTION"",""operator"":""ilike"",""fieldliteral"":""%";
+            //statement += cadena;
+            //statement += @"%"",""type"":""text"",""connector"":""""}]}]";
+
             string statement = @"[{""statementv1"":[{""field"":""DESCRIPTION"",""operator"":""ilike"",""fieldliteral"":""%";
             statement += cadena;
-            statement += @"%"",""type"":""text"",""connector"":""""}]}]";
+            statement += @"%"",""type"":""text"",""connector"":""""}],""connector"":""""}]";
 
             statement = System.Convert.ToBase64String(Encoding.Default.GetBytes(statement));
             //statement = @"W3sic3RhdGVtZW50djEiOlt7ImZpZWxkIjoiREVTQ1JJUFRJT04iLCJvcGVyYXRvciI6Imxpa2UiLCJmaWVsZGxpdGVyYWwiOiIlbWFydGklIiwidHlwZSI6InRleHQiLCJjb25uZWN0b3IiOiJhbmQifSx7ImZpZWxkIjoiUFJJQ0VXSVRIVEFYIiwib3BlcmF0b3IiOiI+PSIsImZpZWxkbGl0ZXJhbCI6IicwLjAxJyIsInR5cGUiOiJudW1lcmljIiwiY29ubmVjdG9yIjoiYW5kIn0seyJmaWVsZCI6IlBSSUNFV0lUSFRBWCIsIm9wZXJhdG9yIjoiPD0iLCJmaWVsZGxpdGVyYWwiOiInMTAwMCciLCJ0eXBlIjoibnVtZXJpYyIsImNvbm5lY3RvciI6IiJ9XX1d";
