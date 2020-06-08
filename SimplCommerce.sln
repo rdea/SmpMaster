@@ -140,7 +140,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimplCommerce.Module.Paymen
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimplCommerce.Module.PaymentCashfree", "src\Modules\SimplCommerce.Module.PaymentCashfree\SimplCommerce.Module.PaymentCashfree.csproj", "{E30CF10F-FABF-4917-8BEB-CB81E4CE2C92}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CRM.Models", "CRM.Models\CRM.Models.csproj", "{2BF562BE-5A7B-485D-84E5-A6E839A2FB53}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CRM.Models", "CRM.Models\CRM.Models.csproj", "{2BF562BE-5A7B-485D-84E5-A6E839A2FB53}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

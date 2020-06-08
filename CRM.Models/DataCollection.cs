@@ -13,6 +13,8 @@ namespace CRM.Models
             }
         }
         public string explained { get; set; }
+        public List<resultbrand> resultbrand { get; set; }
+
         public List<T> result { get; set; }
         public string status { get; set; }
 

@@ -31,8 +31,8 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.ViewModels
         {
                         new SelectListItem { Text = "Nombre: ascendente", Value = "DESCRIPTION ASC" },
                                     new SelectListItem { Text = "Nombre: Descendente", Value = "DESCRIPTION DESC" },
-            new SelectListItem { Text = "Price: Low to High", Value = "PRICEWITHTAX ASC" },
-            new SelectListItem { Text = "Price: High to Low", Value = "PRICEWITHTAX DESC" }
+            new SelectListItem { Text = "Precio: Menor a Mayor", Value = "PRICEWITHTAX ASC" },
+            new SelectListItem { Text = "Precio: Mayor a Menor", Value = "PRICEWITHTAX DESC" }
         };
     }
 }

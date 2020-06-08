@@ -359,49 +359,90 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
                     priceMin = decimal.Parse(p.pricewithtax.Replace(".", ","));
                 if (priceMax < decimal.Parse(p.pricewithtax.Replace(".", ",")))
                     priceMax = decimal.Parse(p.pricewithtax.Replace(".", ","));
-                var filtr = fb.Find(x => x.Id == long.Parse(p.brand));
 
-                if (filtr != null)
+                //lineas nuevas
+                if (pr.resultbrand == null)
                 {
-                    filtr.Count++;
-                }
-                else {
+                    var filtr = fb.Find(x => x.Id == long.Parse(p.brand));
 
-                    FilterBrand f = new FilterBrand
+                    if (filtr != null)
                     {
-                        Id = long.Parse(p.brand),
-                        Name = p.brand,
-                        Slug = p.brand,
+                        filtr.Count++;
+                    }
+                    else
+                    {
+
+                        FilterBrand f = new FilterBrand
+                        {
+                            Id = long.Parse(p.brand),
+                            Name = p.brand,
+                            Slug = p.brand,
+                            Count = 1
+                        };
+                        fb.Add(f);
+
+                    }
+                }
+                //esto era para filtrar la marca en el resultado
+                ////var filtr = fb.Find(x => x.Id == long.Parse(p.brand));
+
+                ////if (filtr != null)
+                ////{
+                ////    filtr.Count++;
+                ////}
+                ////else {
+
+                ////    FilterBrand f = new FilterBrand
+                ////    {
+                ////        Id = long.Parse(p.brand),
+                ////        Name = p.brand,
+                ////        Slug = p.brand,
+                ////        Count = 1
+                ////    };
+                ///                    fb.Add(f);
+
+                //hasta aqui
+
+                //                    var entity = _entityRepository
+                //.Query()
+                //.Include(x => x.EntityType)
+                //.FirstOrDefault(x => x.Slug == f.Slug);
+
+                //                    if (entity == null)
+                //                    {
+                //                        Entity en = new Entity();
+
+                //                        en.EntityId = (long)p.brand
+                //                        en.Name = p.brand;
+                //                        en.Slug = f.Slug;// + "-" + tm.Id;
+                //                        var enType = _entityTypeRepository.Query().FirstOrDefault(x => x.Id == "Brand");
+                //                        en.EntityType = enType;
+
+                //                        //en.EntityType = (EntityType)enType;
+                //                        //en.EntityType = new EntityType("Product");
+                //                        //en.EntityType.AreaName = "Catalog";
+                //                        //en.EntityType.IsMenuable = false;
+                //                        //en.EntityType.RoutingController = "Product";
+                //                        //en.EntityType.RoutingAction = "ProductDetail";
+                //                        _entityRepository.Add(en);
+                //                        _entityRepository.SaveChanges();
+                //                    }
+
+            }
+            if (pr.resultbrand != null)
+            {
+                foreach (var f in pr.resultbrand)
+                {
+                    FilterBrand fbr = new FilterBrand
+                    {
+                        Id = long.Parse(f.brandcode),
+                        Name = f.brandname,
+                        Slug = f.brandcode + '-' + f.brandname,
                         Count = 1
                     };
-
-//                    var entity = _entityRepository
-//.Query()
-//.Include(x => x.EntityType)
-//.FirstOrDefault(x => x.Slug == f.Slug);
-
-//                    if (entity == null)
-//                    {
-//                        Entity en = new Entity();
-
-//                        en.EntityId = (long)p.brand
-//                        en.Name = p.brand;
-//                        en.Slug = f.Slug;// + "-" + tm.Id;
-//                        var enType = _entityTypeRepository.Query().FirstOrDefault(x => x.Id == "Brand");
-//                        en.EntityType = enType;
-
-//                        //en.EntityType = (EntityType)enType;
-//                        //en.EntityType = new EntityType("Product");
-//                        //en.EntityType.AreaName = "Catalog";
-//                        //en.EntityType.IsMenuable = false;
-//                        //en.EntityType.RoutingController = "Product";
-//                        //en.EntityType.RoutingAction = "ProductDetail";
-//                        _entityRepository.Add(en);
-//                        _entityRepository.SaveChanges();
-//                    }
-
-                    fb.Add(f);
+                    fb.Add(fbr);
                 }
+
             }
             model.FilterOption.Price.MaxPrice = priceMax;
             model.FilterOption.Price.MinPrice = priceMin;
