@@ -361,7 +361,7 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
                     priceMax = decimal.Parse(p.pricewithtax.Replace(".", ","));
 
                 //lineas nuevas
-                if (pr.resultbrand == null)
+                if (pr.resultbrands == null)
                 {
                     var filtr = fb.Find(x => x.Id == long.Parse(p.brand));
 
@@ -429,18 +429,27 @@ namespace SimplCommerce.Module.Catalog.Areas.Catalog.Controllers
                 //                    }
 
             }
-            if (pr.resultbrand != null)
+            if (pr.resultbrands != null)
             {
-                foreach (var f in pr.resultbrand)
+                foreach (var f in pr.resultbrands)
                 {
-                    FilterBrand fbr = new FilterBrand
-                    {
-                        Id = long.Parse(f.brandcode),
-                        Name = f.brandname,
-                        Slug = f.brandcode + '-' + f.brandname,
-                        Count = 1
-                    };
-                    fb.Add(fbr);
+                    //var filtr = fb.Find(x => x.Id == long.Parse(f.brandcode));
+
+                    //if (filtr != null)
+                    //{
+                    //    filtr.Count++;
+                    //}
+                    //else
+                    //{
+                        FilterBrand fbr = new FilterBrand
+                        {
+                            Id = long.Parse(f.brandcode),
+                            Name = f.brandname,
+                            Slug = f.brandcode,
+                            Count = int.Parse(f.counts)
+                        };
+                        fb.Add(fbr);
+                    //}
                 }
 
             }

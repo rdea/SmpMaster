@@ -633,8 +633,8 @@ namespace SimplCommerce.Module.ShoppingCart.Areas.ShoppingCart.Controllers
             //string de url principal
             string urlPath = "https://riews.reinfoempresa.com:8443";
             // string filtro = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("'@[{"field":"REFERENCIA","operator":" >= ","fieldliteral":"0","type":"text","connector":""}]'"));
-            string statement = @"[{""statementv1"":[{""field"":""LINE"",""operator"":"">="",""fieldliteral"":""0"",""type"":""text"",""connector"":""""}]}]";
-           // string statement = @"[]";
+            string statement = @"[{""statementv1"":[{""field"":""LINE"",""operator"":"">="",""fieldliteral"":""0"",""type"":""text"",""connector"":""""}],""connector"":""""}]";
+            // string statement = @"[]";
             statement = System.Convert.ToBase64String(Encoding.Default.GetBytes(statement));
             string order = System.Convert.ToBase64String(System.Text.Encoding.Default.GetBytes("DESCRIPTION DESC"));
 

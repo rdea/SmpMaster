@@ -8,6 +8,7 @@ namespace CRM.Models
     {
         public string brandname { get; set; }
         public string brandcode { get; set; }
+        public string counts { get; set; }
 
     }
 }
